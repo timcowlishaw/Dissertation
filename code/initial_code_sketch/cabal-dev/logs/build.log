@@ -1,0 +1,12 @@
+
+package: QuickCheck-2.4.1.1
+os: linux
+arch: x86_64
+compiler: ghc-6.12.3
+client: cabal-install-0.10.2
+flags: templatehaskell base4 base3
+dependencies: base-4.2.0.2 extensible-exceptions-0.1.1.1 ghc-6.12.3
+              random-1.0.0.2 template-haskell-2.4.0.1
+install-outcome: InstallOk
+docs-outcome: NotTried
+tests-outcome: NotTried

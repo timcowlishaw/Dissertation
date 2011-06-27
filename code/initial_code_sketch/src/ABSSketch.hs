@@ -1,13 +1,9 @@
 module ABSSketch (mainLoop, emptyLob) where
-  --import ABSSketch.LimitOrderBook
+  import ABSSketch.Timing
+  import ABSSketch.LimitOrderBook
   --import ABSSketch.Traders
   --import ABSSketch.Sentiment
   import System.IO 
-
-  type Tick = Int
-  type LimitOrderBook = String
-
-  emptyLob = ""
 
   mainLoop :: Tick -> LimitOrderBook -> Handle -> IO ()
   mainLoop t orderBook logFile = do
