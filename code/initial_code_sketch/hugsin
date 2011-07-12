@@ -1,0 +1,3 @@
+:load src/ABSSketch/Test/OrderList.hs
+Test.QuickCheck.quickCheck prop_orderListInsert_insertsOrderAtRightLevel
+Test.QuickCheck.quickCheck prop_orderListFirst_returnsHighestPricedOrder

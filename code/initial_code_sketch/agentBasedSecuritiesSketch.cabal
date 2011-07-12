@@ -45,17 +45,31 @@ Build-type:          Simple
 -- Constraint on the version of Cabal needed to build this package.
 Cabal-version:       >=1.2
 
+Flag test
+  Description: Build and run the test suite
+  Default: False
+
+Executable test-agentBasedSecuritiesSketch
+  if flag(test)
+    Build-depends: base >=4, data-ordlist, QuickCheck >= 2, test-framework, test-framework-quickcheck2
+    Buildable: True
+  else
+    Buildable: False
+
+  Main-Is: src/ABSSketch/Test/Main.hs
+  hs-source-dirs: .,src
 
 Executable agentBasedSecuritiesSketch
   -- .hs or .lhs file containing the Main module.
-  -- Main-is: src/Main.hs            
+  Main-Is: src/Main.hs            
   
   -- Packages needed in order to build this package.
-  -- Build-depends:       
-  
+  Build-depends: base >=4, data-ordlist
+ 
+  hs-source-dirs: .,src 
   -- Modules not exported by this package.
   -- Other-modules:       
   
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
-  -- Build-tools:         
-  
+  -- Build-tools:   
+
