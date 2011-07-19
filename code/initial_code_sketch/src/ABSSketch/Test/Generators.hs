@@ -5,7 +5,7 @@ module ABSSketch.Test.Generators where
   
   arbitraryBid :: Gen Order
   arbitraryBid = do
-    price <- choose (1, 100)
+    price <- choose (100, 20000)
     size <- choose (1, 200)
     time <- choose (1, 10000)
     return $ Order price size time Trader Bid
@@ -13,7 +13,7 @@ module ABSSketch.Test.Generators where
   
   arbitraryOffer :: Gen Order
   arbitraryOffer = do
-    price <- choose (1, 100)
+    price <- choose (100, 20000)
     size <- choose (1, 200)
     time <- choose (1, 10000)
     return $ Order price size time Trader Offer

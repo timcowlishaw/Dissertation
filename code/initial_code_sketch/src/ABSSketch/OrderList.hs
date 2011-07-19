@@ -39,7 +39,7 @@ module ABSSketch.OrderList where
   orderListContains ol o = o `elem` (orders $ levelForOrder ol o)
 
   orderListInsert :: Order -> OrderList -> OrderList
-  orderListInsert o ol@(OrderList os) = OrderList $ insert level os
+  orderListInsert o ol@(OrderList os) = OrderList . insert level . delete level' $ os
     where level = OrderListLevel (price level') (o:orders level')
           level' = levelForOrder ol o
 
@@ -65,12 +65,17 @@ module ABSSketch.OrderList where
   orderListGetDepth :: OrderType -> OrderList -> Int
   orderListGetDepth _ (OrderList []) = 0
   orderListGetDepth Offer (OrderList (p:ps)) = sum $ map size (orders p)
-  orderListGetDepth Bid (OrderList ps) = sum . (map size) . orders . last $ ps
+  orderListGetDepth Bid (OrderList ps) = sum $ map size (orders $ last ps)
 
- -- orderListGetDepthNearTop :: OrderType -> OrderList -> Int
- -- orderListGetDepthNearTop Offer (OrderList (p:ps)) = (sum $ map size ps) + f (price p) ps
- --   where f pmax = sum . map (sum . map size . orders) . filter ((<p*1.05) . price) -- Odd. Shouldn't this be (>0.95*p) ? FIXME
- -- orderListGetDepthNearTop Bid (OrderList ol) = orderListGetDepthNearTop Offer (OrderList $ reverse ol) --This won't work - price multiplier depends on what end of the book we're looking at. FIXME
+  orderListGetDepthNearTop :: OrderType -> OrderList -> Int
+  orderListGetDepthNearTop Bid ol@(OrderList ps) = sum . map (sum . map size . orders) $ ps'
+    where ps' = filter ((>= (floor $ 0.95* fromIntegral max)) . fromIntegral . price) ps
+          max = orderListGetHighestPrice ol
+
+  orderListGetDepthNearTop Offer ol@(OrderList ps) = sum . map (sum . map size . orders) $ ps
+    where ps' = filter ((<= (floor $ 1.05* fromIntegral min)) . fromIntegral . price) ps
+          min = orderListGetLowestPrice ol 
+
 
 
 

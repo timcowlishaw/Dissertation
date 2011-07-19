@@ -50,8 +50,8 @@ module ABSSketch.Test.OrderList where
     where orderList = foldl (flip orderListInsert) emptyOrderList [order1, order2]
 
   prop_orderListGetDepth_whenPassedOfferOrderType_returnsTotalSizeOfOrdersAtHighestPrice :: Price -> Price -> Order -> Property
-  prop_orderListGetDepth_whenPassedOfferOrderType_returnsTotalSizeOfOrdersAtHighestPrice price1 price2 order = forAll (sized $ \n -> choose (1 , n)) $ \ numHighest ->
-    (forAll (sized $ \n -> choose (1,n)) $ \numLowest -> 
+  prop_orderListGetDepth_whenPassedOfferOrderType_returnsTotalSizeOfOrdersAtHighestPrice price1 price2 order = forAll (sized $ \n -> choose (1 , 1+n)) $ \ numHighest ->
+    (forAll (sized $ \n -> choose (1,1+n)) $ \numLowest -> 
       (let  lowestPrice = min price1 price2
             highestPrice = max price1 price2
             lowOrders = take numLowest $ repeat (order {O.price = lowestPrice})
@@ -60,11 +60,48 @@ module ABSSketch.Test.OrderList where
        in (price1 /= price2) ==> (orderListGetDepth Offer orderList == (sum $ map size highOrders))))     
 
   prop_orderListGetDepth_whenPassedBidOrderType_returnsTotalSizeOfOrdersAtLowestPrice :: Price -> Price -> Order -> Property
-  prop_orderListGetDepth_whenPassedBidOrderType_returnsTotalSizeOfOrdersAtLowestPrice price1 price2 order = forAll (sized $ \n -> choose (1 , n)) $ \ numHighest ->
-    (forAll (sized $ \n -> choose (1,n)) $ \numLowest -> 
+  prop_orderListGetDepth_whenPassedBidOrderType_returnsTotalSizeOfOrdersAtLowestPrice price1 price2 order = forAll (sized $ \n -> choose (1 , 1+n)) $ \ numHighest ->
+    (forAll (sized $ \n -> choose (1 , 1+ n)) $ \numLowest -> 
       (let  lowestPrice = min price1 price2
             highestPrice = max price1 price2
             lowOrders = take numLowest $ repeat (order {O.price = lowestPrice})
             highOrders = take numHighest $ repeat (order {O.price = highestPrice})
             orderList = foldl (flip orderListInsert) emptyOrderList (lowOrders ++ highOrders) 
-       in (price1 /= price2) ==> (orderListGetDepth Bid orderList == (sum $ map size lowOrders))))      
+       in ((price1 /= price2) ==> (orderListGetDepth Bid orderList == (sum $ map size lowOrders)))))
+
+  prop_orderListGetDepthNearTop_whenPassedBidOrderType_returnsSizeOfTopPricedOrders :: Order -> Property
+  prop_orderListGetDepthNearTop_whenPassedBidOrderType_returnsSizeOfTopPricedOrders order = forAll (sized $ \n -> choose (1, 1+n)) $ \num -> 
+    (let orders = replicate num order
+         orderList = foldl (flip orderListInsert) emptyOrderList orders
+      in orderListGetDepthNearTop Bid orderList == (sum . map size $ orders))
+
+  prop_orderListGetDepthNearTop_whenPassedBidOrderType_returnsSizeOfOrdersWithinPoint05OfTop :: Order -> Property
+  prop_orderListGetDepthNearTop_whenPassedBidOrderType_returnsSizeOfOrdersWithinPoint05OfTop order = forAll (sized $ \n -> choose (1, 1+n)) $ \num -> 
+    (let orders = order : replicate num (order {O.price=floor $ (fromIntegral . O.price $ order) * 0.95})
+         orderList = foldl (flip orderListInsert) emptyOrderList orders
+      in orderListGetDepthNearTop Bid orderList == (sum . map size $ orders))
+
+  prop_orderListGetDepthNearTop_whenPassedBidOrderType_doesNotreturnSizeOfOrdersOutsidePoint05OfTop :: Order -> Property
+  prop_orderListGetDepthNearTop_whenPassedBidOrderType_doesNotreturnSizeOfOrdersOutsidePoint05OfTop order = forAll (sized $ \n -> choose (1, 1+n)) $ \num -> 
+    (let orders = order : replicate num (order {O.price=floor $ (fromIntegral . O.price $ order) * 0.94})
+         orderList = foldl (flip orderListInsert) emptyOrderList orders
+      in orderListGetDepthNearTop Bid orderList == size order)
+
+  prop_orderListGetDepthNearTop_whenPassedOfferOrderType_returnsSizeOfBottomPricedOrders :: Order -> Property
+  prop_orderListGetDepthNearTop_whenPassedOfferOrderType_returnsSizeOfBottomPricedOrders order = forAll (sized $ \n -> choose (1, 1+n)) $ \num -> 
+    (let orders = replicate num order
+         orderList = foldl (flip orderListInsert) emptyOrderList orders
+      in orderListGetDepthNearTop Offer orderList == (sum . map size $ orders))
+
+  prop_orderListGetDepthNearTop_whenPassedOfferOrderType_returnsSizeOfOrdersWithinPoint05OfBottom :: Order -> Property
+  prop_orderListGetDepthNearTop_whenPassedOfferOrderType_returnsSizeOfOrdersWithinPoint05OfBottom order = forAll (sized $ \n -> choose (1, 1+n)) $ \num -> 
+    (let orders = order : replicate num (order {O.price=floor $ (fromIntegral . O.price $ order) * 1.05})
+         orderList = foldl (flip orderListInsert) emptyOrderList orders
+      in orderListGetDepthNearTop Offer orderList == (sum . map size $ orders))
+
+  prop_orderListGetDepthNearTop_whenPassedOfferOrderType_doesNotreturnSizeOfOrdersOutsidePoint05OfBottom :: Order -> Property
+  prop_orderListGetDepthNearTop_whenPassedOfferOrderType_doesNotreturnSizeOfOrdersOutsidePoint05OfBottom order = forAll (sized $ \n -> choose (1, 1+n)) $ \num -> 
+    (let orders = order : replicate num (order {O.price=floor $ (fromIntegral . O.price $ order) * 1.06})
+         orderList = foldl (flip orderListInsert) emptyOrderList orders
+      in orderListGetDepthNearTop Offer orderList == size order)
+
