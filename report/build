@@ -1,0 +1,2 @@
+#!/bin/bash
+latex -shell-escape report &&  bibtex report && latex -shell-esape report && latex -shell-escape report  &&  dvips report && ps2pdf report.ps && gnome-open report.pdf

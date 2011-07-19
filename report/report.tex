@@ -1,0 +1,78 @@
+\title{A domain-specific language for agent-based modelling in Haskell}
+\author{
+  \textsc{Tim Cowlishaw}\\
+    \small Department of Computer Science\\
+    \small University College London\\
+    \small Malet Place\\
+    \small London WC1E 6BT, UK\\
+    \small \texttt{t.cowlishaw@cs.ucl.ac.uk}
+}
+\date{\small September 7, 2011}
+\documentclass[a4paper, 11pt]{article}
+\usepackage{listings, courier, color, float, caption, graphicx, harvard, times, amsmath, amsfonts}
+
+\let\stdsection\section  
+\renewcommand\section{\newpage\stdsection}  
+\renewcommand{\refname}{\stdsection{Bibliography}}
+\floatstyle{boxed}
+\restylefloat{figure}
+\bibliographystyle{agsm}
+\lstset{
+  basicstyle=\scriptsize\ttfamily, 
+  numberstyle=\tiny,
+  numbers=left,
+  numbersep=5pt,            
+  tabsize=2,               
+  extendedchars=true,        
+  breaklines=true,           
+  keywordstyle=\color{red},
+  frame=b,         
+  stringstyle=\color{white}\ttfamily,
+  showspaces=false,          
+  showtabs=false,           
+  xleftmargin=17pt,
+  framexleftmargin=17pt,
+  framexrightmargin=5pt,
+  framexbottommargin=4pt,
+  showstringspaces=false     
+}
+\lstloadlanguages{Scala}
+\DeclareCaptionFont{white}{\color{white}}
+\DeclareCaptionFormat{listing}{\colorbox[cmyk]{0.43, 0.35, 0.35,0.01}{\parbox{\textwidth}{\hspace{15pt}#1#2#3}}}
+\captionsetup[lstlisting]{format=listing,labelfont=white,textfont=white, singlelinecheck=false, margin=0pt, font={bf,footnotesize}}
+\sloppy
+\begin{document}
+\maketitle
+\begin{center}
+\footnotesize This report is submitted as part requirement for the MSc Computer Science
+degree at UCL. It is substantially the result of my own work except where explicitly indicated in the text.
+\end{center}
+
+\begin{abstract}
+This report introduces a framework for agent-based modelling in the functional programming language Haskell \cite{Jones2003}.
+Agent-based modelling \cite{Holland1991} is a strategy for computational modelling based on simulating the interactions of multiple autonomous agents, and observing the behaviour emerging from these interactions. We argue that functional languages such as Haskell are particularly well suited to agent-based modelling and simulation tasks, and that Haskell in particular offers several advantageous features. Our modelling framework is implemented as an embedded domain-specific language, and is based upon the actor model \cite{Agha1985} for concurrent programming; we also discuss the rationale for both these design choices and present a review of the state of the art in both agent-based modelling and DSL design. Finally, we present a demonstration of the use of our framework in the form of a case study investigating the effect of variable attenuation of trading rates on liquidity and systemic risk in a simple securities market.
+\end{abstract}
+\tableofcontents
+\section{Introduction}
+\subsection{Agent-based modelling}
+\subsection{Haskell}
+\subsection{Domain-specific languages}
+\section{The framework}
+\subsection{Design}
+\subsection{Implementation}
+\subsection{Usage}
+\section{Case study: The effects of variable attenuation on high-frequency securities trading}
+  \subsection{Systemic risk and high frequency trading}
+  \subsection{Variable attenuation}
+  \subsection{The simulation}
+  \subsection{Results}
+  \subsection{Conclusions}
+\section{Conclusion}
+\section{Appendix A: Development and compilation guidelines}
+\section{Appendix B: Users manual}
+\section{Appendix C: Case study data}
+\section{Appendix D: Framework code listing}
+\section{Appending E: Simulation code listing}
+\section{Figures}
+\bibliography{/home/tim/Documents/library.bib}
+\end{document}
