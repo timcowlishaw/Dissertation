@@ -32,6 +32,7 @@ module ABSSketch.Test where
               testProperty "orderListGetDepthNearTop does not return size of orders outside .05 of top when passed a Bid order type" prop_orderListGetDepthNearTop_whenPassedBidOrderType_doesNotreturnSizeOfOrdersOutsidePoint05OfTop,
               testProperty "orderListGetDepthNearTop returns size of bottom priced orders when passed an Offer order type" prop_orderListGetDepthNearTop_whenPassedOfferOrderType_returnsSizeOfBottomPricedOrders,
               testProperty "orderListGetDepthNearTop returns size of orders within 0.05 of bottom when passed an Offer order type" prop_orderListGetDepthNearTop_whenPassedOfferOrderType_returnsSizeOfOrdersWithinPoint05OfBottom,
-              testProperty "orderListGetDepthNearTop does not return size of orders outside 0.05 of bottom when passed an Offer order type" prop_orderListGetDepthNearTop_whenPassedOfferOrderType_returnsSizeOfOrdersWithinPoint05OfBottom
+              testProperty "orderListGetDepthNearTop does not return size of orders outside 0.05 of bottom when passed an Offer order type" prop_orderListGetDepthNearTop_whenPassedOfferOrderType_returnsSizeOfOrdersWithinPoint05OfBottom,
+              testProperty "orderListPopLowest returns a tuple of the lowest priced order and the order list without the popped order" prop_orderListPopLowest_returnsTupleOfLowestOrderFromListAndListWithoutOrder
              ]
           ]

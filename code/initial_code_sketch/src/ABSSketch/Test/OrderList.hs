@@ -1,10 +1,12 @@
 module ABSSketch.Test.OrderList where
+
   import Test.QuickCheck
   import Test.QuickCheck.Property
   import ABSSketch.Order hiding (price)
   import qualified ABSSketch.Order as O (price)
   import ABSSketch.OrderList
   import ABSSketch.Test.Generators
+  import GHC.Exts (sortWith)
   
 
   prop_orderListFirst_returnsHighestPricedOrder highOrder lowOrder = (O.price lowOrder < O.price highOrder) ==> highOrder == orderListFirst orderList
@@ -105,3 +107,8 @@ module ABSSketch.Test.OrderList where
          orderList = foldl (flip orderListInsert) emptyOrderList orders
       in orderListGetDepthNearTop Offer orderList == size order)
 
+  prop_orderListPopLowest_returnsTupleOfLowestOrderFromListAndListWithoutOrder order1 order2 = 
+    let lowOrder = head . sortWith O.price $ [order1, order2]
+        highOrder = last . sortWith O.price $ [order1, order2]
+        orderList = foldl (flip orderListInsert) emptyOrderList [order1, order2]
+    in orderListPopLowest orderList == (lowOrder, orderListDelete lowOrder orderList)

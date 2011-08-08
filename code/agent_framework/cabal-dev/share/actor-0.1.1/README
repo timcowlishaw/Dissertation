@@ -1,0 +1,15 @@
+
+The Haskell implementation of
+
+Actors with Multi-Headed Message Receive Patterns
+Martin Sulzmann (martin.sulzmann@gmail.com) and Edmund Lam and Peter van Weert
+In Coordination'08 
+
+
+Installation via cabal:
+runhaskell Setup.hs configure --ghc --user --prefix=$HOME
+runhaskell Setup.hs build
+runhaskell Setup.hs install
+
+Check out the examples (extra-source-files) for how to use the library extension.
+I'll add more information later.

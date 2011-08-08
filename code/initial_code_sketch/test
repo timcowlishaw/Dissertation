@@ -1,0 +1,3 @@
+#!/bin/bash
+cabal-dev clean && cabal-dev configure --flags=test && cabal-dev build && dist/build/test-agentBasedSecuritiesSketch/test-agentBasedSecuritiesSketch
+

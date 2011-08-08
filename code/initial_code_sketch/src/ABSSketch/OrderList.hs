@@ -1,4 +1,5 @@
 module ABSSketch.OrderList where
+  import ABSSketch.Util
   import ABSSketch.Order hiding (price)
   import qualified ABSSketch.Order as O (price)
   import Data.List
@@ -20,6 +21,9 @@ module ABSSketch.OrderList where
     x == y = (price x) == (price y)
 
   newtype OrderList = OrderList [OrderListLevel]
+
+  instance Eq OrderList where
+    (OrderList xs) == (OrderList ys) = and $ zipWith (\x y -> orders x == orders y && price x == price y) xs ys
   
   --TODO: remove orderList prefix to method name and use idiomatic list operations with import qualified as where there are clashes in a certain namespace.
 
@@ -49,9 +53,11 @@ module ABSSketch.OrderList where
 
 
   orderListDelete ::  Order -> OrderList -> OrderList
-  orderListDelete o ol@(OrderList os) = OrderList $ insert level os    
-    where level = OrderListLevel (price level') (delete o $ orders level')
-          level' = levelForOrder ol o
+  orderListDelete o ol@(OrderList os) = OrderList os''
+    where os'' = fromMaybe os' $ (flip insert $ os') `fmap` justIf (not . null . orders) level'  
+          os' = delete level os 
+          level' = OrderListLevel (price level) (delete o $ orders level)
+          level = levelForOrder ol o
 
   orderListGetHighestPrice :: OrderList -> Price
   orderListGetHighestPrice (OrderList (p:ps)) = price p
@@ -74,8 +80,28 @@ module ABSSketch.OrderList where
 
   orderListGetDepthNearTop Offer ol@(OrderList ps) = sum . map (sum . map size . orders) $ ps
     where ps' = filter ((<= (floor $ 1.05* fromIntegral min)) . fromIntegral . price) ps
-          min = orderListGetLowestPrice ol 
+          min = orderListGetLowestPrice ol
 
+  orderListPopLowest :: OrderList -> (Order, OrderList)
+  orderListPopLowest ol@(OrderList ps) = (order, orderListDelete order ol)
+    where order = last . orders . last $ ps 
+
+  orderListFill :: OrderList -> Order -> OrderType -> [Trade] -> (OrderList, Order, [Trades])
+  orderListFill ol@(OrderList []) order Buy trades = (ol, order, trades)
+  orderListFill ol@(OrderList (p:ps)) order Buy trades | null . orders $ p              = orderListFill (OrderList ps) order Buy trades
+                                                       | size order == 0                = (ol, order, trades)
+                                                       | size order == size bookOrder   = (ol', order', trades')
+                                                                                          where ol'     = orderListDelete bookOrder ol
+                                                                                                order'  = order { size = 0}
+                                                                                                trades' = Trade order bookOrder : trades
+                                                       | size order < size bookOrder    = (ol', order', trades')
+                                                                                          where ol'     = orderListInsert bookOrder' $ orderListDelete bookOrder ol
+                                                                                                order'  = order { size = 0}
+                                                                                                trades' = Trade order bookOrder'' : trades
+                                                                                                bookOrder' = bookOrder  { size = size bookOrder' - size order}
+                                                                                                bookOrder'' = bookOrder { size = size order } 
+                                                       | otherwise                      = orderListFill (orderListDelete bookOrder ol) order Buy trades
+                                                      where bookOrder = head . orders $ p   
 
 
 
