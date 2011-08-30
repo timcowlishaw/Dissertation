@@ -1,63 +1,109 @@
-module Simulation.LimitOrderBook where
+{-# LANGUAGE GADTs #-}
+module Simulation.LimitOrderBook(LOB(), empty, bestBid, numOrders, bestOffer, buySideLiquidity, sellSideLiquidity, buySideDepthNearTop, sellSideDepthNearTop, buySideDepth, sellSideDepth,buySideLevels, sellSideLevels, midPrice, lastTradedPrice, placeOrder) where
   import Simulation.Types
   import Simulation.Order
-  import Simulation.MultiLevelList (MultilevelList)
-  import qualified Simulation.MultiLevelList as MLL
+  import Simulation.OrderResponse
+  import Simulation.Trade
+  --import Simulation.Traders
+  import Simulation.LimitOrderList hiding (empty, insert, numOrders)
+  import qualified Simulation.LimitOrderList as LOL (empty, insert, numOrders)
+  import Data.Map (Map)
+  import qualified Data.Map as M
+  import Control.Applicative hiding (empty)
 
-  data TraderInfoItem = TraderInfo { traderID :: TraderID, liquidityTaken :: Double, penaltyApplied :: Int, time :: Time}
-
-  data LOB :: {
-    bids :: MultiLevelList (Order Buy Limit),
-    offers :: MultiLevelList (Order Sell Limit),
-    buysWaiting :: [Order Buy Market],
-    sellsWaiting :: [Order Sell Market],
+  data LOB = LOB {
+    bids :: LimitOrderList Buy,
+    offers :: LimitOrderList Sell,
     tradesDone :: [Trade],
-    time :: Time,
-    buysReceived :: [Order Buy Market],
-    sellsReceived :: [Order Sell Market]
-    sentiment :: Sentiment
-    traderInfo :: [TraderInfoItem]
+    penalties :: Map TraderID Penalty,
+    penaltyFunction :: LOB -> LOB -> Penalty -> Penalty
   }
+ 
+  empty = LOB LOL.empty LOL.empty [] M.empty (flip $ const . flip const)
 
-  empty = LOB emptyMultiLevelList emptyMultiLevelList [] [] [] 0 [] [] Calm [] initialStats
+  bestBid :: LOB -> Price
+  bestBid = bestPrice . bids
 
-  primed = foldL (flip match) emptyOrderList [createOrder 2050 500 0 Phantom Offer, createOrder 1950 500 0 Phantom Bid] 
+  bestOffer :: LOB -> Price
+  bestOffer = bestPrice . offers
 
-  emptyTraderInfoItem = TraderInfo Phantom 0 0 0
+  numOrders :: LOB -> Int
+  numOrders book = numBids book + numOffers book
 
-  incrementTime lob = (executeTrades lob) { time = (time lob) + 1}
+  numBids :: LOB -> Int
+  numBids = LOL.numOrders . bids
 
-  executeTrades = fail "Not implemented yet"
+  numOffers :: LOB -> Int
+  numOffers = LOL.numOrders . offers
 
-  bestBid = head . MLL.first . bids
-
-  bestOffer = head . MLL.first . offers 
-  
   buySideLiquidity :: LOB -> Int
+  buySideLiquidity = liquidity . bids
 
   sellSideLiquidity :: LOB -> Int
+  sellSideLiquidity = liquidity . offers
 
   buySideDepth :: LOB -> Int 
+  buySideDepth = depth . bids
 
   sellSideDepth :: LOB -> Int
+  sellSideDepth = depth . offers
 
-  buySideDepthNearTop :: LOB -> Int
+  buySideDepthNearTop :: LOB -> Double -> Int
+  buySideDepthNearTop = depthNearTop . bids 
 
-  sellSideDepthNearTop :: LOB -> Int
+  sellSideDepthNearTop :: LOB -> Double -> Int
+  sellSideDepthNearTop = depthNearTop . offers
 
   buySideLevels :: LOB -> Int
-  
+  buySideLevels = numLevels . bids 
+ 
   sellSideLevels :: LOB -> Int
+  sellSideLevels = numLevels . offers
 
   midPrice :: LOB -> Price
-
+  midPrice book = floor $ fromIntegral (bestBid book + bestOffer book) / 2 
+ 
   lastTradedPrice :: LOB -> Price
+  lastTradedPrice = tradedPrice . head . tradesDone
 
-  placeBid :: LOB -> (Order Buy Limit) -> LOB
+  placeOrder :: (MarketSide a, OrderType b) => Time -> LOB -> Order a b -> (LOB, [OrderResponse])
+  placeOrder tick book order | tick <= penaltyForTrader  = (book,  [PenaltyResponse trader penaltyForTrader])
+                             | otherwise                 = (book'', map TradeResponse trades'')
+    where trader            = traderID order
+          penaltyForTrader  = M.findWithDefault 0 trader (penalties book)
+          trades''          = trades ++ trades'
+          (book'', trades') = uncrossBook $ book' {penalties = penalties'}
+          penalties'        = M.update (return . penaltyFunction book book book') trader (penalties book)
+          (book', trades)   = bookAndTrades
+          bookAndTrades :: (LOB, [Trade])
+          bookAndTrades     = case order of
+            (BidOrder   _ _ _) ->  (book { bids   = LOL.insert  (bids   book) order}, [])
+            (OfferOrder _ _ _) ->  (book { offers = LOL.insert  (offers book) order}, [])
+            (BuyOrder   _ _) ->  executeBuy  order book
+            (SellOrder  _ _) ->  executeSell order book
+   
+  executeBuy :: (Order Buy Market) -> LOB -> (LOB, [Trade])
+  executeBuy order book = (book', trades) 
+    where book'                  = book {offers = offers', tradesDone = trades}
+          (offers', offerOrders) = toFill (offers book) order
+          trades                 = map (makeTrade order) offerOrders ++ tradesDone book
 
-  placeOffer :: LOB -> (Order Sell Limit) -> LOB
 
-  placeBuy :: LOB -> (Order Buy Market) -> LOB
+  executeSell :: (Order Sell Market) -> LOB -> (LOB, [Trade])
+  executeSell order book = (book', trades)
+    where book'              = book {bids = bids', tradesDone = trades}
+          (bids', bidOrders) = toFill (bids book) order
+          trades             = map (flip makeTrade order) bidOrders ++ tradesDone book
 
-  placeSell :: LOB -> Order Sell Market) -> LOB
+  isCrossed :: LOB -> Bool
+  isCrossed book = bestBid book > bestOffer book
 
+  uncrossBook :: LOB -> (LOB, [Trade])
+  uncrossBook book = uncrossBook' (book, [])
+    where uncrossBook' (b,t) | isCrossed b = uncrossBook' (b', trades' ++ t)
+                             | otherwise    = (b, t)
+            where (bids', bidOrders)  = toFill (bids book) offer
+                  (offer, offers')    = popBest (offers book)
+                  trades              = map (flip makeTrade offer) bidOrders 
+                  trades'             = trades ++ tradesDone book
+                  b'                  = b { bids = bids', offers = offers', tradesDone = trades'}

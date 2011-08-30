@@ -219,6 +219,7 @@ The trader categories are:
 >      newbuysize  = 100 || entier (abs ((r mod 500) + (g*10)))
 >      newsellsize = 100 || entier (abs ((r mod 500) + (g*1000)))
 >      fillsperorder = 1.5
+
 >      (ordertype, orderprice, ordersize) = (ot, (entier (abs op)), (entier (abs os)))
 >                                           where
 >                                           newinv = my_inventory + (((supply catid) - (demand catid))*time)
@@ -256,6 +257,7 @@ The trader categories are:
 >                                                = cv - (abs (a1 * (bestbid - cv))),    if (bestoffer >= bestbid >= cv)
 >                                                = bestbid + (a1 * (cv-bestbid)),       if (bestoffer >= cv >= bestbid)
 >                                                = cv - (abs (a1 * (bestbid - cv))),    otherwise   || not sure if we need this
+
 >                                           opOs = bestbid,                             if (bestbid >= bestoffer >= cv)
 >                                                = bestbid,                             if (bestbid >= cv >= bestoffer)
 >                                                = cv,                                  if and [(cv >= bestbid >= bestoffer), bestbid ~= 0] || bestbid
@@ -265,6 +267,7 @@ The trader categories are:
 >                                                = cv + (abs (a2 * (cv-bestoffer))),    otherwise   
 >||                                                = error ("opOs: bb="++(show bestbid)++" bo="++(show bestoffer)++" cv="++(show cv)++" os="++(show os)
 >||                                                         ++" a2="++(show a2)++"\n"), otherwise 
+
 >                                           opOb = bestoffer,                           if (bestbid >= bestoffer >= cv)
 >                                                = bestbid,                             if (bestbid >= cv >= bestoffer)
 >                                                = cv,                                  if (cv >= bestbid >= bestoffer)

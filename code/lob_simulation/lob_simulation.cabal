@@ -65,9 +65,9 @@ Executable test_lob_simulation
 Executable lob_simulation
   -- .hs or .lhs file containing the Main module.
   Main-is: src/Main.hs            
-  
+  HS-Source-Dirs: .,src 
   -- Packages needed in order to build this package.
-  Build-depends: base >= 4       
+  Build-depends: base >= 4, mtl, containers, csv   
   
   -- Modules not exported by this package.
   -- Other-modules:       
