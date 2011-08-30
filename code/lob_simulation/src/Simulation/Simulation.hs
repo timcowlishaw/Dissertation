@@ -43,5 +43,5 @@ module Simulation.Simulation where
   iterateM :: Monad m => (a -> m a) -> a -> m [a]
   iterateM f a = (a:) `liftM` (f a >>= iterateM f)
 
-  defaultMain :: IO (SimResult m s) -> IO ()
+  defaultMain :: SimResult m s -> IO ()
   defaultMain x = return ()   

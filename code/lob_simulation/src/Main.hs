@@ -5,10 +5,11 @@ import Simulation.Traders
 import Simulation.LimitOrderBook
 import Control.Monad
 
-main = defaultMain $ loggers =<< (runSim 2 $ Simulation traders market updateMarket)
-  where market  = makeMarket value book
-        value   = underlyingValue Calm 2000 
-        book    = empty
+main :: IO ()
+main = (defaultMain <=< loggers) =<< (runSim 2 $ Simulation traders market updateMarket)
+  where market  = makeMarket value' book'
+        value'   = underlyingValue Calm 2000 
+        book'    = empty
         traders = makeTraders 3  intermediary ++           --11
                   makeTraders 3  hfTrader ++               --1    
                   makeTraders 2  fundamentalBuyer ++       --79

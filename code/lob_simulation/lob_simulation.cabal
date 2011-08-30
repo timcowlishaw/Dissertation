@@ -21,9 +21,6 @@ Homepage:            http://timcowlishaw.co.uk
 -- The license under which the package is released.
 License:             AllRightsReserved
 
--- The file containing the license text.
-License-file:        LICENSE
-
 -- The package author(s).
 Author:              Tim Cowlishaw
 
@@ -45,9 +42,6 @@ Build-type:          Simple
 -- Constraint on the version of Cabal needed to build this package.
 Cabal-version:       >=1.2
 
-HS-Source-Dirs:     .,src
-
-GHC-Options:        -Wall
 
 Flag test
   Description:      build and run the test suite
@@ -62,12 +56,13 @@ Executable test_lob_simulation
   Main-Is:         test/Main.hs
   HS-Source-Dirs:  .,src,test
 
-Executable lob_simulation
+Executable lob_simulation 
+  GHC-Options:     -Wall -fhpc
   -- .hs or .lhs file containing the Main module.
-  Main-is: src/Main.hs            
-  HS-Source-Dirs: .,src 
+  Main-is:         src/Main.hs            
+  HS-Source-Dirs:  .,src 
   -- Packages needed in order to build this package.
-  Build-depends: base >= 4, mtl, containers, csv   
+  Build-depends:   base >= 4, mtl, containers, csv   
   
   -- Modules not exported by this package.
   -- Other-modules:       

@@ -1,0 +1,11 @@
+#!/bin/sh
+
+PROG=lob_simulation
+VIEW=gnome-open
+FLAGS=
+
+cabal-dev build
+dist/build/${PROG}/${PROG} ${FLAGS} +RTS  -p -hc -s${PROG}.summary
+hp2ps ${PROG}.hp
+${VIEW} ${PROG}.ps
+cat ${PROG}.summary
