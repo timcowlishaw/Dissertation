@@ -13,18 +13,19 @@ module Simulation.Traders (Trader, makeTraders, makeAgent, intermediary, hfTrade
 
   data OrderTypeName = Buy | Sell | Bid | Offer deriving (Eq)
 
-  data TraderSpec = TraderSpec String InventoryLevel InventoryLevel Int ImbalanceFunction VolatilityFunction Size
+  data TraderSpec = TraderSpec String InventoryLevel InventoryLevel Int InventoryFunction ImbalanceFunction VolatilityFunction Size
 
-  type VolatilityFunction = Int -> Double
+  type VolatilityFunction = Double -> Double
   type ImbalanceFunction = Int -> Double
 
   data Trader = Trader {
     traderID               ::  TraderID,
     initialInventory       ::  InventoryLevel,
     targetInventory        ::  InventoryLevel, 
+    targetOrderSize        ::  Size
     supplyDemand           ::  Int,
     --valueFunction          ::  ValueFunction,
-    --inventoryFunction      ::  InventoryFunction, 
+    inventoryFunction      ::  InventoryFunction, 
     imbalanceFunction      ::  ImbalanceFunction,
     priceChangeFunction    ::  VolatilityFunction,
     orderSizeLimit         ::  Size
@@ -33,40 +34,52 @@ module Simulation.Traders (Trader, makeTraders, makeAgent, intermediary, hfTrade
   topOfBookThreshold = 0.05
 
   intermediary :: TraderSpec
-  intermediary = TraderSpec "intermediary" 0 1200 0 highImbalanceSensitivity lowVolatilitySensitivity 3000
+  intermediary = TraderSpec "intermediary" 0 1200 200 0 intermediaryInventory highImbalanceSensitivity lowVolatilitySensitivity 3000
   
   hfTrader :: TraderSpec
-  hfTrader = TraderSpec "hfTrader" 0 800 0 highImbalanceSensitivity lowVolatilitySensitivity 3000
+  hfTrader = TraderSpec "hfTrader" 0 800 100 0 hfInventory highImbalanceSensitivity lowVolatilitySensitivity 3000
 
   fundamentalBuyer :: TraderSpec
-  fundamentalBuyer = TraderSpec "fundamentalBuyer" 0 20000 200 lowImbalanceSensitivity highVolatilitySensitivity 3000
+  fundamentalBuyer = TraderSpec "fundamentalBuyer" 0 20000 200 200 fundamentalBuyerInventory lowImbalanceSensitivity highVolatilitySensitivity 3000
     
   fundamentalSeller :: TraderSpec
-  fundamentalSeller = TraderSpec "fundamentalSeller" 0 100 (-200) lowImbalanceSensitivity highVolatilitySensitivity 3000
+  fundamentalSeller = TraderSpec "fundamentalSeller" 0 100 200 (-200) fundamentalSellerInventory lowImbalanceSensitivity highVolatilitySensitivity 3000
 
   opportunisticTrader :: TraderSpec
-  opportunisticTrader = TraderSpec "opportunisticTrader" 0 800 0 mediumImbalanceSensitivity highVolatilitySensitivity 3000
+  opportunisticTrader = TraderSpec "opportunisticTrader" 0 800 100 0 opportunisticTraderInventory mediumImbalanceSensitivity highVolatilitySensitivity 3000
   
   smallTrader :: TraderSpec
-  smallTrader = TraderSpec "smallTrader" 0 400 0 mediumImbalanceSensitivity highVolatilitySensitivity 1
+  smallTrader = TraderSpec "smallTrader" 0 400 100 0 smallTraderInventory mediumImbalanceSensitivity highVolatilitySensitivity 1
+
+  intermediaryInventory trader value price inventory = bounded (-2000) amount 2000
+    where amount = 0.2 * (-(tangent (y/700)))* (targetInventory trader) 
+          y      = inventory -(target)
+
+  hfInventory
+  fundamentalBuyerInventory
+  fundamentalSellerInventory
+  opportunisticTraderInventory
+  smallTraderInventory
+
+  bounded = (min .) . max
 
   lowImbalanceSensitivity :: ImbalanceFunction
-  lowImbalanceSensitivity imbalance = 1
+  lowImbalanceSensitivity = const 1
   
   mediumImbalanceSensitivity :: ImbalanceFunction
-  mediumImbalanceSensitivity imbalance = (0.5-) . sigmoid . fromIntegral $ imbalance
+  mediumImbalanceSensitivity = (0.5-) . sigmoid . fromIntegral
 
   highImbalanceSensitivity :: ImbalanceFunction
-  highImbalanceSensitivity imbalance = min 40 . exp . fromIntegral $ imbalance
+  highImbalanceSensitivity = min 40 . exp . fromIntegral
 
   lowVolatilitySensitivity :: VolatilityFunction
-  lowVolatilitySensitivity volatility = 1
+  lowVolatilitySensitivity = const 1
 
   mediumVolatilitySensitivity :: VolatilityFunction
-  mediumVolatilitySensitivity volatility = (0.5-) . sigmoid . fromIntegral $ volatility
+  mediumVolatilitySensitivity = (0.5-) . sigmoid
 
   highVolatilitySensitivity :: VolatilityFunction
-  highVolatilitySensitivity volatility = min 40 . exp . fromIntegral $ volatility   
+  highVolatilitySensitivity = min 40 . exp   
 
   sigmoid x = 1 / (1 + exp(-x))
 
@@ -78,40 +91,32 @@ module Simulation.Traders (Trader, makeTraders, makeAgent, intermediary, hfTrade
     where initialState = TraderState $ initialInventory trader
           function market = do
             (TraderState inventoryLevel) <- (flip (!) $ traderID trader) `fmap` get
-            let oSize           = orderSize trader market 
+            let targetInventory = inventoryLevel + supplyDemand * time
+            let oSize           = orderSize trader market targetInventory 
             let oType           = orderType oSize (orderSizeLimit trader)
             let pricingStrategy = if oSize > (orderSizeLimit trader) then aggressive else neutral
             let oPrice          = pricingStrategy oType trader market
-            placeOrder oType oSize oPrice (traderID trader)
+            placeOrder (time market) oType (abs oSize) oPrice (traderID trader)
     
-  placeOrder :: OrderTypeName -> Size -> Maybe Price -> TraderID -> SimState TraderState MarketMessage ()
-  placeOrder t s p id = tell [makeOrder t s p id]
-    where makeOrder Bid   oSize (Just oPrice) i = Message $ i `bid` oPrice `for` oSize
-          makeOrder Offer oSize (Just oPrice) i = Message $ i `offer` oPrice `for` oSize
-          makeOrder Buy   oSize _             i = Message $ i `buy` oSize
-          makeOrder Sell  oSize _             i = Message $ i `sell` oSize
-
-  outlook :: Market -> MarketOutlook
-  outlook market | bb >= bo && bo >= cv = CrossedRising
-                 | bb >= cv && cv >= bo = CrossedStable
-                 | cv >= bb && bb >= bo = CrossedFalling
-                 | bo >= bb && bb >= cv = Falling 
-                 | bo >= cv && cv >= bb = Stable
-                 | cv >= bo && bo >= bb = Rising
-                 where bb = bestBid $ book market
-                       bo = bestOffer $ book market
-                       cv = currentValue market
+  placeOrder :: Time -> OrderTypeName -> Size -> Maybe Price -> TraderID -> SimState TraderState MarketMessage ()
+  placeOrder time t s p id = tell [makeOrder t s p id]
+    where makeOrder Bid   oSize (Just oPrice) id = Message time $ id `bids` oPrice `for` oSize
+          makeOrder Offer oSize (Just oPrice) id = Message time $ id `offers` oPrice `for` oSize
+          makeOrder Buy   oSize _             id = Message time $ id `buys` oSize
+          makeOrder Sell  oSize _             id = Message time $ id `sells` oSize
  
-  orderSize :: Trader -> Market -> Size
-  orderSize trader market     = floor $ priceChangeF priceChange * orderImbalanceF imbalance
-    where priceChangeF        = priceChangeFunction trader
-          orderImbalanceF     = imbalanceFunction trader
-          priceChange         = 2 * (bidMovement + offerMovement)
-          imbalance           = ssDepth - bsDepth
-          bsDepth             = buySideDepthNearTop book' topOfBookThreshold
-          ssDepth             = sellSideDepthNearTop book' topOfBookThreshold
-          bidMovement         = (bestBid book' - lastBestBid market) `div` lastBestBid market
-          offerMovement       = (bestOffer book' - lastBestOffer market) `div` lastBestOffer market 
+  orderSize :: Trader -> Market -> Size -> Size
+  orderSize trader market target                 = floor $ priceChangeF priceChange * orderImbalanceF imbalance * inventoryFunction trader (currentValue market) (midPrice market) target
+    where priceChangeF                           = priceChangeFunction trader
+          orderImbalanceF                        = imbalanceFunction trader
+          priceChange                            = 2 * (bidMovement + offerMovement)
+          imbalance                              = ssDepth - bsDepth
+          bsDepth                                = buySideDepthNearTop book' topOfBookThreshold
+          ssDepth                                = sellSideDepthNearTop book' topOfBookThreshold
+          bidMovement   | lastBestBid market > 0 = fromIntegral (bestBid book' - lastBestBid market) / fromIntegral (lastBestBid market)
+                        | otherwise =  0.05
+          offerMovement | lastBestOffer market > 0 = fromIntegral (bestOffer book' - lastBestOffer market) / fromIntegral (lastBestOffer market)
+                        | otherwise = 0.05
           book'               = book market 
  
   orderType :: Size -> Size -> OrderTypeName 
@@ -144,44 +149,44 @@ module Simulation.Traders (Trader, makeTraders, makeAgent, intermediary, hfTrade
           bo           = bestOffer $ book market
           bb           = bestBid $ book market
           cv           = currentValue market
-          sensitivity  = priceChangeFunction trader $ buySideDepthNearTop (book market) topOfBookThreshold
+          sensitivity  = priceChangeFunction trader . fromIntegral $ buySideDepthNearTop (book market) topOfBookThreshold
       
  
   aggressiveBuy :: Trader -> Market -> Price
   aggressiveBuy trader market
     | outlook' `elem` [CrossedFalling, CrossedStable, Rising] = bo
     | outlook' == CrossedRising                               = bb
-    | outlook' == Falling                                     = (cv -) . floor $ abs (sensitivity * fromIntegral (bb - cv))
-    | outlook' == Stable                                      = (bb +) . floor $ (sensitivity * fromIntegral (bb - cv))
+    | outlook' == Falling                                     = floor . (fromIntegral cv -) . abs $ sensitivity * fromIntegral (bb - cv)
+    | outlook' == Stable                                      = floor . (fromIntegral bb +) $ sensitivity * fromIntegral (bb - cv)
     where outlook'    = outlook market
           bo          = bestOffer $ book market
           bb          = bestBid $ book market
           cv          = currentValue market
-          sensitivity = priceChangeFunction trader $ buySideDepthNearTop (book market) topOfBookThreshold
+          sensitivity = priceChangeFunction trader . fromIntegral $ buySideDepthNearTop (book market) topOfBookThreshold
   
 
   neutralSell :: Trader -> Market -> Price 
   neutralSell trader market
     | outlook' `elem` [CrossedFalling, CrossedStable, Falling] = bb
     | outlook' `elem` [Rising, CrossedRising]                  = cv
-    | otherwise                                                = (bo -) . floor $ (sensitivity * fromIntegral sp)
+    | otherwise                                                = abs . (bo -) . floor $ (sensitivity * fromIntegral sp)
     where  outlook'    = outlook market
            bo          = bestOffer $ book market
            bb          = bestBid $ book market
            cv          = currentValue market
            sp          = bo - bb
-           sensitivity = priceChangeFunction trader $ sellSideDepthNearTop (book market) topOfBookThreshold
+           sensitivity = priceChangeFunction trader . fromIntegral $ sellSideDepthNearTop (book market) topOfBookThreshold
 
   aggressiveSell :: Trader -> Market -> Price   
   aggressiveSell trader market
     | outlook' == CrossedFalling                = bo
     | outlook' `elem` [CrossedStable, Falling]  = bb
     | outlook' == CrossedRising                 = cv
-    | outlook' == Rising                        = (cv +) . floor $ abs (sensitivity * fromIntegral (cv - sp))
-    | outlook' == Stable                        = (bo -) . floor $ (sensitivity * fromIntegral sp)
+    | outlook' == Rising                        = abs . (cv +) . floor $ abs (sensitivity * fromIntegral (cv - sp))
+    | outlook' == Stable                        = abs . (bo -) . floor $ (sensitivity * fromIntegral sp)
     where  outlook'     = outlook market
            bo           = bestOffer $ book market
            bb           = bestBid $ book market
            cv           = currentValue market
            sp           = bo - bb
-           sensitivity  = priceChangeFunction trader $ sellSideDepthNearTop (book market) topOfBookThreshold
+           sensitivity  = priceChangeFunction trader . fromIntegral $  sellSideDepthNearTop (book market) topOfBookThreshold

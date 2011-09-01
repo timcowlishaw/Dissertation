@@ -1,0 +1,1 @@
+Mix "test_profiling.hs" 1314690017 1870060756 1 [(2:12-2:18,ExpBox False),(2:3-2:18,ExpBox False),(1:8-2:18,ExpBox False),(1:1-2:18,TopLevelBox ["main"])]

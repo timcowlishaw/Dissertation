@@ -21,17 +21,17 @@ module Simulation.Market where
     lastNumOrders :: Int
   }
 
-  data MarketOutlook = CrossedRising | CrossedStable | CrossedFalling | Rising | Stable | Falling deriving (Eq)
+  data MarketOutlook = CrossedRising | CrossedStable | CrossedFalling | Rising | Stable | Falling deriving (Eq, Show)
 
 
-  data MarketMessage = Response OrderResponse | forall a b . (MarketSide a, OrderType b) => Message (Order a b)
+  data MarketMessage = Response Time OrderResponse | forall a b . (MarketSide a, OrderType b) => Message Time (Order a b)
 
   newtype TraderState = TraderState {
     inventoryLevel :: InventoryLevel 
   }
 
   makeMarket :: Value -> LOB -> Market
-  makeMarket v b = Market 0 v b 0 0 0
+  makeMarket v b = Market 0 v b (getPrice v 0) (getPrice v 0) 0
 
   updateInventory :: TraderState -> InventoryLevel -> TraderState
   updateInventory (TraderState i) i' = TraderState $ i + i'
@@ -56,10 +56,21 @@ module Simulation.Market where
     let tick                = time last
     let book'               = book last 
     let (book'', responses) = placeOrders tick book' messages
-    tell $ map Response responses
+    tell $ map (Response tick) responses
     agentState <- get
     put $ M.mapWithKey (updateStateForAgent responses) agentState 
     return $  Market (tick + 1) (value last) book'' (bestBid book') (bestOffer book') (numOrders book')
+
+  outlook :: Market -> MarketOutlook
+  outlook market | bb > bo  && bo > cv  = CrossedRising
+                 | bb >= cv && cv >= bo = CrossedStable
+                 | cv > bb  && bb > bo  = CrossedFalling
+                 | bo > bb  && bb > cv  = Falling 
+                 | bo >= cv && cv >= bb = Stable
+                 | cv > bo  && bo > bb  = Rising
+                 where bb = bestBid $ book market
+                       bo = bestOffer $ book market
+                       cv = currentValue market
 
   updateStateForAgent :: [OrderResponse] -> AgentID -> TraderState -> TraderState
   updateStateForAgent responses id previous = foldl ((. inventoryDifference) . updateInventory) previous . filter (elem id . forTraders) $ responses
@@ -72,4 +83,4 @@ module Simulation.Market where
     where placeOrders' _ (book, responses) []       = (book, responses)
           placeOrders' t (book, responses) (m:ms)   = placeOrders' t (book', responses ++ responses') ms
             where (book', responses') =  placeOrder' t book m
-                  placeOrder' t b (Message o) =  placeOrder t b o
+                  placeOrder' t b (Message time o) =  placeOrder t b o

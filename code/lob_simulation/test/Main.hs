@@ -1,7 +1,7 @@
 import Test.QuickCheck
 import Test.Framework (defaultMain)
-import Simulation.Properties.MultiLevelList
-
+import Simulation.Tests.LimitOrderList
+import Simulation.Tests.LimitOrderBook
 main = defaultMain tests
 
-tests = [multiLevelListTestGroup]
+tests = [limitOrderListTests, limitOrderBookTests]

@@ -10,7 +10,8 @@
 \date{\small September 7, 2011}
 \documentclass[a4paper, 11pt]{article}
 \usepackage{listings, courier, color, float, caption, graphicx, harvard, times, amsmath, amsfonts}
-
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{1ex plus 0.5ex minus 0.2ex}
 \let\stdsection\section  
 \renewcommand\section{\newpage\stdsection}  
 \renewcommand{\refname}{\stdsection{Bibliography}}
@@ -36,46 +37,166 @@
   framexbottommargin=4pt,
   showstringspaces=false     
 }
-\lstloadlanguages{Scala}
+\lstloadlanguages{Haskell}
 \DeclareCaptionFont{white}{\color{white}}
 \DeclareCaptionFormat{listing}{\colorbox[cmyk]{0.43, 0.35, 0.35,0.01}{\parbox{\textwidth}{\hspace{15pt}#1#2#3}}}
 \captionsetup[lstlisting]{format=listing,labelfont=white,textfont=white, singlelinecheck=false, margin=0pt, font={bf,footnotesize}}
 \sloppy
+
+\lstnewenvironment{code}[1][]%
+  {\minipage{\linewidth} 
+   \lstset{language=Haskell,basicstyle=\ttfamily\footnotesize,frame=none,#1}}
+  {\endminipage}
+
 \begin{document}
 \maketitle
 \begin{center}
 \footnotesize This report is submitted as part requirement for the MSc Computer Science
 degree at UCL. It is substantially the result of my own work except where explicitly indicated in the text.
+\\
+\footnotesize The report may be freely copied and distributed provided the source is explicitly acknowledged.
 \end{center}
 
 \begin{abstract}
 This report introduces a framework for agent-based modelling in the functional programming language Haskell \cite{Jones2003}.
-Agent-based modelling \cite{Holland1991} is a strategy for computational modelling based on simulating the interactions of multiple autonomous agents, and observing the behaviour emerging from these interactions. We argue that functional languages such as Haskell are particularly well suited to agent-based modelling and simulation tasks, and that Haskell in particular offers several advantageous features. Our modelling framework is implemented as an embedded domain-specific language, and is based upon the actor model \cite{Agha1985} for concurrent programming; we also discuss the rationale for both these design choices and present a review of the state of the art in both agent-based modelling and DSL design. Finally, we present a demonstration of the use of our framework in the form of a case study investigating the effect of variable attenuation of trading rates on liquidity and systemic risk in a simple securities market.
+
+Agent-based modelling \cite{Holland1991} is a strategy for computational modelling based on simulating the interactions of multiple autonomous agents, and observing the behaviour emerging from these interactions. We argue that functional languages such as Haskell are particularly well suited to agent-based modelling and simulation tasks, and that Haskell in particular offers several advantageous features.
+
+Our modelling framework is implemented as an embedded domain-specific language, and is biased towards applications of ABM that require the semantics regarding timing of events to be well specified and deterministic, for instance where the analysis of the results is founded in systems engineering techniques, as in \cite{Clack2011}.
+
+We also discuss the rationale for both these design choices and present a review of the state of the art in both agent-based modelling and DSL design. Finally, we present a demonstration of the use of our framework in the form of a case study investigating the effect of variable attenuation of trading rates on liquidity and volatility in a simple securities market, based on the work presented in \cite{Clack2011}.
 \end{abstract}
 \tableofcontents
 \section{Introduction}
-  \subsection{Agent-based modelling}
-  \subsection{Haskell}
-  \subsection{Domain-specific languages}
-\section{The framework}
-  \subsection{Requirements}
-  \subsection{Design}
-  \subsection{Implementation}
-  \subsection{Usage}
-\section{Case study: The effects of variable trading-rate attenuation on high-frequency securities trading}
-  \subsection{Introdution}
-    \subsubsection{Systemic risk and high frequency trading}
-    \subsubsection{Variable attenuation}
-  \subsection{The simulation}
-  \subsection{Results}
-  \subsection{Conclusions}
-\section{Conclusion}
-  \subsection{Areas for improvement and opportunities for further research}
+\section{Background}
+\section{Analysis \& Design}
+
+Both our simulation framework and the case study are designed as sets of embedded domain-specific languages (eDSLs). A domain-specific language denotes a specialist programming language which expresses entities, relationships and operations in the same vocabulary as the domain being modelled \cite{Ghosh2011}. This approach has the benefit of allowing increased clarity in communication with specialists in the domain to be modelled \cite{Ghosh2011}. This ensures that requirements can be easily gathered, from which software can be created whose application logic can then be verified by domain experts who may not be familiar with general-purpose programming languages. DSL-based development also affords a more expressive programming style, using declarative constructs that map intuitively to concepts in the domain to be modelled \cite{VanDeursen2000}. In addition, A DSL-based development approach is very amenable to the use of formal methods for verifying program correctness. \cite{Hudak1996a}.
+
+\emph{Embedded} (or `\emph{internal}') domain-specific languages are DSLs which are expressed within a \emph{host} language, allowing the developer of the DSL to build upon the existing capabilities of the language, and the user of the DSL to combine domain-specific constructs with the generic features of the host where necessary \cite{Ghosh2010}. \emph{eDSLs} also allow multiple DSLs implemented within the same host language to be composed \cite{Mak2007}, augmenting their expressive power, especially in applications with functionality whose concerns lie in the intersection of the domains modelled by one or more DSLs. By contrast, \emph{external} DSLs are implemented as standalone languages, with their own compiler or interpreter and runtime environment. This can allow greater expressiveness, as the DSLs syntax is not constrained by that of a host language. However, external DSLs are more costly to develop (due to the increased work involved in writing a language runtime from scratch), and lack the benefit of composability afforded by an embedded DSL.
+
+For these reasons, we chose to implement our simulation framework as an embedded, rather than external DSL. The Haskell language offers many features that are advantageous for DSL-based development, and for dealing with specific properties of the domains of simulation and financial modelling. In particular, it has a very concise syntax which also affords a large amount of flexibility to the DSL designer. Function application is denoted by juxtaposition of terms and is left-associative, unlike java or C-style languages which require function calls to be postfixed with parentheses, with the order of application made explicit; Haskell also allows functions to be called with their arguments in either infix or prefix position. All these features greatly improve readability of code written in a domain-specific language. Its expressive type system and default call-by-need (\emph{lazy}) evaluation strategy also offer several advantages that we will discuss in detail later in this paper.
+
+This project concerns itself with several domains of discourse, each of which we model individually as a domain-specific language. In particular, we define a DSL for describing agent-based simulations in the abstract, as well as another for describing securities orders in a limit-order book. These two languages are then composed within our case study simulation, allowing us to express the behaviour of traders in our market simulation in a high-level, declerative manner.
+
+The process of designing a DSL necessarily relies on a solid understanding of the domain to be modelled, coupled with a sound design mapping this understanding into software. \cite{Ghosh2010} describes this process as creating a mapping from the \emph{problem domain} being modelled to the \emph{solution domain}; the domain of tools, methodologies and techniques in which our domain specific language will be expressed.
+
+This mapping process involves identifying the key entities in the problem domain at an appropriate level of granularity, and ensuring that they are each represented by a corresponding entity in the solution domain, such that all interations and relationships between entities are preserved by the mapping. The process of creating this mapping involves the creation of a vocabulary common to both the problem and solution domains, a technique grounded in Eric Evans' concept of a \emph{ubiquitous language}, a key part of the methodology of \emph{Domain-driven design} \cite{Evans2004}. In order to do this, the language used to describe entities and relationships in the problem domain as the vocabulary used by the domain-specific language. Given that our solution domain is a strongly typed, functional programming language, these building-blocks of our domain specific language will be composed of types, typeclasses and combinators, following the method described in \cite{Jones2003a}.
+
+The field of agent-based modelling describes a simulation in terms of \emph{interactions} between heterogenous, independent \emph{agents}, which have \emph{behaviours} which influence their interactions. \cite{Macal2010}. Furthermore, as outlined in \cite{Clack2011}, our agents should interact through a sequence of shared \emph{states}, such that the agents' interactions with the state are ordered in a well-defined and deterministic manner. As a result, we can infer that our DSL must include types representing the following entities in the problem domain: \emph{Simulation}, \emph{Behaviour}, \emph{Agent} \emph{State} and \emph{Interaction}. \cite{Clack2011} sets out the semantics of how these entities interact as a recurrence relation:
+
+\begin{tabular}{r l l}
+    $Simulation$         &  $= States_{0..n}$\\
+    $State_{t+1}$        &  $= f(State_{t}, Interactions_{t})$\\
+    $Interactions_{t+1}$ &  $= \cup \: Behaviour_{agent}(state_{t})$ & $\forall  \: agent \in Agents$
+\end{tabular}
+
+This formulation requires a function $f$, which merges the interactions of all the agents with the previous state to produce the next - we call this the \emph{Reducer} function in our domain model, and it is a property of the simulation in general.
+
+This analysis of the entities and relationships in the domain of agent-based modelling leads us to the following set of types from which our Haskell DSL can be composed:
+
+\begin{code}
+  data Simulation m s = { 
+    agents :: [Agent m s],
+    initialState :: SimulationState s, 
+    reduce :: s -> [m] -> s
+  }
+  
+  data Agent m s = { 
+    behaviour :: s -> [m]
+  }
+  
+  runSim :: Simulation m s -> [s]
+
+\end{code}
+
+We define an algebraic data type representing a Simulation, which is composed of an initial state, a set of agents, and a reducer function. (We use Haskell's \emph{record syntax} here to automatically define getter methods for each of the values). The Simulation type is parameterised over the types of both the state and the actions (the type variables $m$ and $s$ respectively).
+We also define the signature of a function that runs the simulation ($runSim$) - producing a list of its successive states.
+
+This formulation accurately models the structure of an agent based model as Haskell types, however, there are a number of concerns that are not yet addressed. Given that agents are heterogenous and interacting, they must have some notion of identity which allows agents to identify each other (and the researcher running the simulation to identify the source of actions and their effects). In addition, \cite{Macal2010} stipulates that agents should have the capacity for adaptive behaviour, which implies that they should have some sort of internal state; a capability that is not provided by our current definition. For this to be possible, each agent must have access to some internal state that allows it to store information about its environment and interactions, in order to adapt its behaviour in the future. Therefore, we extend our model with an additional type variable representing an agent's state, and a string representing the agent's identity\footnote{We define a \emph{type synonym} $AgentID$ for the String type here - this allows us to use a more meaningful type name in type signatures without the added overhead of boxing and unboxing the type, as would be the case with a $data$ or $newtype$ declaration. However, this is a slight trade-off, as it gives us no compile-time assurances that a given String is actually an AgentID or not.}:
+
+\begin{code}
+
+  type AgentID = String
+
+  data Simulation a m s = { 
+    agents :: [Agent a m s],
+    initialState :: s, 
+    reducer :: s -> [m] -> s
+  }
+  
+  data Agent a m s = {
+    agentID   :: AgentID
+    behaviour :: (s, a) -> ([m], a)
+  }
+  
+  runSim :: Simulation a m s -> [s]
+
+\end{code}
+
+We may also want to analyse the results of our simulation with reference to the messages passed between agents, instead of, or alongside the successive states of the simulation. For this reason, we define a new result type which encapsulates the states of the simulation and a log of the messages passed, and alter our $runSim$ function to return a value of this new type:
+
+\begin{code}
+  data SimResult m s = SimResult { 
+    messages :: [m],
+    states :: [s]
+  }
+
+  runSim :: Simulation a m s -> SimResult ms
+\end{code}
+
+Finally, in order to achieve heterogeneity in our agents' interactions, we need to allow some degree of non-determinism in their behaviour. This necessarily means that it can no longer be represented by a pure function, and must instead be represented by an computation in the IO Monad, and the Simulation State as a value within the IO Monad \cite{Wadler1992}.
+In fact, there are several aspects to our model which could be simplified by being modelled as Monadic actions - our agents' internal state can be represented by the State Monad, absolving us of the need to pass the state in as an extra argument to the behaviour function, and to return a tuple with the updated value, and removing the need for any `plumbing' to pass the value back to the function on the next call. In addition, the logging of messages passed between actors and the state can be achieved by maintaining a list of them in the Writer Monad, which allows them to be accumulated alongside the main state. We can capture the notion of a computation with all of these semantics using the \emph{mtl} library, which draws on the work of Mark P Jones in \cite{Jones1995} to provide a \emph{monad transformer} typeclass, which allows the semantics of monad-like structures to be composed into a single structure which is itself a monad.\footnote {Formally, a Monad is a type constructor \texttt{M a}, with the associated operations \texttt{return :: a -> M a} and \texttt{bind :: M a -> (a -> M a) -> M a}, where $return$ is both the left and right identity for $bind$, and that successive application of $bind$ is associative. In practical terms, this allows effectful computations to be sequenced with the $bind$ combinator (written \texttt{>>=} in Haskell) in a type safe manner. A Monad Transformer is a type constructor \texttt{T m a} with a single function \texttt{lift :: (Monad m) => m a -> T m a}, where the type \texttt{T m a} is also a monad by the above definition. This allows different types of effectful semantics to be `layered' into a single monad.}. By applying the State and Writer transformers provided by \emph{mtl} to the IO monad, we can construct a single type which will wrap our simulation state type, encapsulating all the above concerns; non-determinism, statefulness, and logging of messages:
+\begin{code}
+  newtype SimState a m s = SimState {
+    unState :: StateT (MapAgentID a) (WriterT [m] IO) s
+  } deriving (Monad, MonadIO, MonadWriter [m], MonadState (Map AgentID a), Functor)
+\end{code}
+
+We wrap our monad transformer stack in a newtype\footnote{$newtype$ declarations allow the definition of a new algebraic data type with a single value, reducing the runtime overhead involved in boxing and unboxing algebraic datatypes by discarding the additional type information after the compile-time type-checking phase, treating the new type and its value as isomorphic. By contrast, conventional algebraic datatypes (defined with the 'data' keyword) with a single value are not isomorphic to their member type, due to a difference in their semantics where the member value is $\bot$. In short, newtypes are strict in their value, while data declarations are lazy. This distinction makes little practical difference to our implementation, meaning that the use of newtypes is more practical from an efficiency point of view.} here, as this ensures we can hide the underlying implementation of the type by failing to export the constructor or the $unState$ accessor from its containing module. Thus, calling code only sees a Monad instance called SimState with certain features, and is agnostic towards its implementation. The deriving clause relies on an extension to the Haskell 98 standard provided by the Glasgow Haskell Compiler \cite{Jones1992a}, enabling the compiler to automatically derive typeclass instances for a newtype whose member type is an instance of the same typeclass. Our new monad includes a Writer instance for the type $[m]$; a list of values of our message type, and a State value of type $Map\:AgentID\:a$, a map keyed by agent id, holding a value of the agent state type for each agent.
+
+This design change requires some adjustment to the rest of our simulation API, giving us the set of types:
+
+
+\begin{code}
+
+  type AgentID = String
+
+  newtype SimState a m s = SimState { unState :: StateT (Map AgentID a) (WriterT [m] IO) s } deriving (Monad, MonadIO, MonadWriter [m], MonadState (Map AgentID a), Functor)
+
+  data Agent a m s = Agent {
+    agentID :: AgentID,
+    behaviour :: s -> SimState a m (),
+    initialAgentState :: a
+  }  
+
+  data Simulation a m s = Simulation { agents :: [Agent a m s], 
+    initialState :: s,
+    reduce :: s -> [m] -> SimState a m s
+  } 
+
+  data SimResult m s = SimResult {states :: [s], log :: [m]}
+
+  runSim :: Simulation a m s -> IO (SimResult m s) 
+\end{code}
+
+In addition to defining the parameters of the simulation itself, any user of our system will need to instrument the system in order to gather experimental data, and export that data in a useful format - this is an additional concern that will be incorporated into our simulation framework. Currently our simulation outputs a value of type $SimResult$ inside the IO monad. 
+
+
+% DSL design %
+
+
+% Finance bits design %
+
+
+
+
+  
+\section{Implementation}
 \section{Appendix A: Development and compilation guidelines}
 \section{Appendix B: Users manual}
 \section{Appendix C: Case study data}
-\section{Appendix D: Framework code listing}
-\section{Appendix E: Case study code listing}
+\section{Appendix D: Code listing}
 \section{Figures}
 \bibliography{/home/tim/Documents/library.bib}
 \end{document}

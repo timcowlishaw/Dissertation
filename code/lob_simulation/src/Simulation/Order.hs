@@ -58,11 +58,11 @@ module Simulation.Order where
   type OfferOrder = Order Sell Limit
   type BidOrder = Order Buy Limit
  
-  buy = BuyOrder
-  sell = SellOrder
+  buys = BuyOrder
+  sells = SellOrder
 
-  bid = BidOrder
-  offer = OfferOrder
+  bids = BidOrder
+  offers = OfferOrder
 
   for :: MarketSide s => (Size -> Order s Limit) -> Size -> Order s Limit
   f `for` a = f a
@@ -77,12 +77,12 @@ module Simulation.Order where
   size :: (Order s t) -> Size
   size (BuyOrder    _ s)    = s
   size (SellOrder   _ s)    = s
-  size (BidOrder    _ s _)  = s
-  size (OfferOrder  _ s _)  = s
+  size (BidOrder    _ _ s)  = s
+  size (OfferOrder  _ _ s)  = s
   
   price :: (Order s Limit) -> Price
-  price (BidOrder   _ _ p) = p
-  price (OfferOrder _ _ p) = p
+  price (BidOrder   _ p _) = p
+  price (OfferOrder _ p _) = p
 
   updateSize :: Size -> (Order s Limit) -> (Order s Limit)
   updateSize s (BidOrder    t _ p) = BidOrder t s p

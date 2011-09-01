@@ -9,20 +9,21 @@ module Simulation.LimitOrderList (LimitOrderList(), empty, isEmpty, bestPrice, n
   import Data.Sequence hiding (null, empty, length)
   import qualified Data.Sequence as S (null, empty, length)
   import Data.Foldable
+  import Safe
 
   data OrderListLevel a = OrderListLevel {levelPrice :: Price, levelOrders :: Seq (Order a Limit)}
+
+  instance Show (OrderListLevel a) where
+    show (OrderListLevel p _) = "OrderListLevel: " ++ show p
 
   instance Eq (OrderListLevel a) where
     oll1 == oll2 = levelPrice oll1 == levelPrice oll2
 
   instance Ord (OrderListLevel Buy) where
-    compare oll1 oll2 = levelPrice oll1 `compare` levelPrice oll2
+    compare oll1 oll2 = levelPrice oll2 `compare` levelPrice oll1
 
   instance Ord (OrderListLevel Sell) where
-    compare oll1 oll2 = invert $ levelPrice oll1 `compare` levelPrice oll2
-                        where invert LT = GT
-                              invert GT = LT
-                              invert EQ = EQ 
+    compare oll1 oll2 = levelPrice oll1 `compare` levelPrice oll2
 
   newtype LimitOrderList a = LimitOrderList { levels :: [OrderListLevel a] }
 
@@ -42,10 +43,10 @@ module Simulation.LimitOrderList (LimitOrderList(), empty, isEmpty, bestPrice, n
   orders = concat . map ordersForLevel . levels
 
   bestPrice :: MarketSide a => LimitOrderList a -> Price
-  bestPrice = levelPrice . head . levels
+  bestPrice = fromMaybe 0 . fmap levelPrice . headMay . levels
 
   bestOrders :: MarketSide a => LimitOrderList a -> [Order a Limit]
-  bestOrders = toList . levelOrders . head . levels
+  bestOrders = fromMaybe [] . fmap (toList . levelOrders) . headMay . levels
   
   popBest :: (Ord (OrderListLevel a), MarketSide a) => LimitOrderList a -> (Order a Limit, LimitOrderList a)
   popBest orderlist       = (order, orderlist')

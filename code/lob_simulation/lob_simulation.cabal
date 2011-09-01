@@ -49,7 +49,7 @@ Flag test
 
 Executable test_lob_simulation
   if flag(test)
-    Build-depends: QuickCheck >= 2, test-framework, test-framework-quickcheck2
+    Build-depends: QuickCheck >= 2, test-framework, test-framework-quickcheck2, test-framework-hunit, HUnit
     Buildable:     True
   else
     Buildable:     False
@@ -57,12 +57,12 @@ Executable test_lob_simulation
   HS-Source-Dirs:  .,src,test
 
 Executable lob_simulation 
-  GHC-Options:     -Wall -fhpc
+  GHC-Options:     -Wall -O2
   -- .hs or .lhs file containing the Main module.
   Main-is:         src/Main.hs            
   HS-Source-Dirs:  .,src 
   -- Packages needed in order to build this package.
-  Build-depends:   base >= 4, mtl, containers, csv   
+  Build-depends:   base >= 4, mtl, containers, csv, safe 
   
   -- Modules not exported by this package.
   -- Other-modules:       

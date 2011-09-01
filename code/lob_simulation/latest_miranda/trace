@@ -1,0 +1,128 @@
+Limit Order Book at time t=0 with current value=2000
+-----------------------------
+Offers:
+2050:   [($2050, 500 shares, at 0 secs,  from Phantom, of type Offer)
+     ]
+2053:   [($2053, 241 shares, at 0 secs,  from FundSeller 1, of type Offer)
+     ,($2053, 241 shares, at 0 secs,  from FundSeller 2, of type Offer)
+     ]
+ENDOL
+Bids:
+1948:   [($1948, 64 shares, at 0 secs,  from Opportunistic 1, of type Bid)
+     ,($1948, 64 shares, at 0 secs,  from Opportunistic 2, of type Bid)
+     ,($1948, 64 shares, at 0 secs,  from Opportunistic 3, of type Bid)
+     ,($1948, 64 shares, at 0 secs,  from Opportunistic 4, of type Bid)
+     ,($1948, 244 shares, at 0 secs,  from FundBuyer 1, of type Bid)
+     ,($1948, 244 shares, at 0 secs,  from FundBuyer 2, of type Bid)
+     ,($1948, 21 shares, at 0 secs,  from HFT 1, of type Bid)
+     ,($1948, 21 shares, at 0 secs,  from HFT 2, of type Bid)
+     ,($1948, 21 shares, at 0 secs,  from HFT 3, of type Bid)
+     ,($1948, 38 shares, at 0 secs,  from Intermediary 1, of type Bid)
+     ,($1948, 38 shares, at 0 secs,  from Intermediary 2, of type Bid)
+     ,($1948, 38 shares, at 0 secs,  from Intermediary 3, of type Bid)
+     ]
+1950:   [($1950, 500 shares, at 0 secs,  from Phantom, of type Bid)
+     ]
+ENDOL
+Buys Waiting: []
+Sells Waiting: []
+Trades Done: []
+Orders Received: [($1948, 38 shares, at 0 secs,  from Intermediary 3, of type Bid)
+     ,($1948, 38 shares, at 0 secs,  from Intermediary 2, of type Bid)
+     ,($1948, 38 shares, at 0 secs,  from Intermediary 1, of type Bid)
+     ,($1948, 21 shares, at 0 secs,  from HFT 3, of type Bid)
+     ,($1948, 21 shares, at 0 secs,  from HFT 2, of type Bid)
+     ,($1948, 21 shares, at 0 secs,  from HFT 1, of type Bid)
+     ,($1948, 244 shares, at 0 secs,  from FundBuyer 2, of type Bid)
+     ,($1948, 244 shares, at 0 secs,  from FundBuyer 1, of type Bid)
+     ,($2053, 241 shares, at 0 secs,  from FundSeller 2, of type Offer)
+     ,($2053, 241 shares, at 0 secs,  from FundSeller 1, of type Offer)
+     ,($1948, 64 shares, at 0 secs,  from Opportunistic 4, of type Bid)
+     ,($1948, 64 shares, at 0 secs,  from Opportunistic 3, of type Bid)
+     ,($1948, 64 shares, at 0 secs,  from Opportunistic 2, of type Bid)
+     ,($1948, 64 shares, at 0 secs,  from Opportunistic 1, of type Bid)
+     ,($2050, 500 shares, at 0 secs,  from Phantom, of type Offer)
+     ,($1950, 500 shares, at 0 secs,  from Phantom, of type Bid)
+     ]
+Sentiment: Calm
+
+================================
+Limit Order Book at time t=1 with current value=2000
+-----------------------------
+Offers:
+2050:   [($2050, 500 shares, at 0 secs,  from Phantom, of type Offer)
+     ,($2050, 198 shares, at 0 secs,  from FundSeller 1, of type Offer)
+     ,($2050, 198 shares, at 0 secs,  from FundSeller 2, of type Offer)
+     ]
+2053:   [($2053, 241 shares, at 0 secs,  from FundSeller 1, of type Offer)
+     ,($2053, 241 shares, at 0 secs,  from FundSeller 2, of type Offer)
+     ]
+ENDOL
+Bids:
+1948:   [($1948, 64 shares, at 0 secs,  from Opportunistic 1, of type Bid)
+     ,($1948, 64 shares, at 0 secs,  from Opportunistic 2, of type Bid)
+     ,($1948, 64 shares, at 0 secs,  from Opportunistic 3, of type Bid)
+     ,($1948, 64 shares, at 0 secs,  from Opportunistic 4, of type Bid)
+     ,($1948, 244 shares, at 0 secs,  from FundBuyer 1, of type Bid)
+     ,($1948, 244 shares, at 0 secs,  from FundBuyer 2, of type Bid)
+     ,($1948, 21 shares, at 0 secs,  from HFT 1, of type Bid)
+     ,($1948, 21 shares, at 0 secs,  from HFT 2, of type Bid)
+     ,($1948, 21 shares, at 0 secs,  from HFT 3, of type Bid)
+     ,($1948, 38 shares, at 0 secs,  from Intermediary 1, of type Bid)
+     ,($1948, 38 shares, at 0 secs,  from Intermediary 2, of type Bid)
+     ,($1948, 38 shares, at 0 secs,  from Intermediary 3, of type Bid)
+     ]
+1950:   [($1950, 500 shares, at 0 secs,  from Phantom, of type Bid)
+     ]
+1951:   [($1951, 78 shares, at 0 secs,  from Opportunistic 1, of type Bid)
+     ,($1951, 78 shares, at 0 secs,  from Opportunistic 2, of type Bid)
+     ,($1951, 78 shares, at 0 secs,  from Opportunistic 3, of type Bid)
+     ,($1951, 78 shares, at 0 secs,  from Opportunistic 4, of type Bid)
+     ,($1951, 200 shares, at 0 secs,  from FundBuyer 1, of type Bid)
+     ,($1951, 200 shares, at 0 secs,  from FundBuyer 2, of type Bid)
+     ,($1951, 0 shares, at 0 secs,  from HFT 1, of type Bid)
+     ,($1951, 0 shares, at 0 secs,  from HFT 2, of type Bid)
+     ,($1951, 0 shares, at 0 secs,  from HFT 3, of type Bid)
+     ,($1951, 0 shares, at 0 secs,  from Intermediary 1, of type Bid)
+     ,($1951, 0 shares, at 0 secs,  from Intermediary 2, of type Bid)
+     ,($1951, 0 shares, at 0 secs,  from Intermediary 3, of type Bid)
+     ]
+ENDOL
+Buys Waiting: []
+Sells Waiting: []
+Trades Done: []
+Orders Received: [($1951, 0 shares, at 0 secs,  from Intermediary 3, of type Bid)
+     ,($1951, 0 shares, at 0 secs,  from Intermediary 2, of type Bid)
+     ,($1951, 0 shares, at 0 secs,  from Intermediary 1, of type Bid)
+     ,($1951, 0 shares, at 0 secs,  from HFT 3, of type Bid)
+     ,($1951, 0 shares, at 0 secs,  from HFT 2, of type Bid)
+     ,($1951, 0 shares, at 0 secs,  from HFT 1, of type Bid)
+     ,($1951, 200 shares, at 0 secs,  from FundBuyer 2, of type Bid)
+     ,($1951, 200 shares, at 0 secs,  from FundBuyer 1, of type Bid)
+     ,($2050, 198 shares, at 0 secs,  from FundSeller 2, of type Offer)
+     ,($2050, 198 shares, at 0 secs,  from FundSeller 1, of type Offer)
+     ,($1951, 78 shares, at 0 secs,  from Opportunistic 4, of type Bid)
+     ,($1951, 78 shares, at 0 secs,  from Opportunistic 3, of type Bid)
+     ,($1951, 78 shares, at 0 secs,  from Opportunistic 2, of type Bid)
+     ,($1951, 78 shares, at 0 secs,  from Opportunistic 1, of type Bid)
+     ,($1948, 38 shares, at 0 secs,  from Intermediary 3, of type Bid)
+     ,($1948, 38 shares, at 0 secs,  from Intermediary 2, of type Bid)
+     ,($1948, 38 shares, at 0 secs,  from Intermediary 1, of type Bid)
+     ,($1948, 21 shares, at 0 secs,  from HFT 3, of type Bid)
+     ,($1948, 21 shares, at 0 secs,  from HFT 2, of type Bid)
+     ,($1948, 21 shares, at 0 secs,  from HFT 1, of type Bid)
+     ,($1948, 244 shares, at 0 secs,  from FundBuyer 2, of type Bid)
+     ,($1948, 244 shares, at 0 secs,  from FundBuyer 1, of type Bid)
+     ,($2053, 241 shares, at 0 secs,  from FundSeller 2, of type Offer)
+     ,($2053, 241 shares, at 0 secs,  from FundSeller 1, of type Offer)
+     ,($1948, 64 shares, at 0 secs,  from Opportunistic 4, of type Bid)
+     ,($1948, 64 shares, at 0 secs,  from Opportunistic 3, of type Bid)
+     ,($1948, 64 shares, at 0 secs,  from Opportunistic 2, of type Bid)
+     ,($1948, 64 shares, at 0 secs,  from Opportunistic 1, of type Bid)
+     ,($2050, 500 shares, at 0 secs,  from Phantom, of type Offer)
+     ,($1950, 500 shares, at 0 secs,  from Phantom, of type Bid)
+     ]
+Sentiment: Calm
+
+================================
+Limit Order Book at time t=

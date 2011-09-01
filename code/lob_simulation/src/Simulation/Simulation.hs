@@ -22,13 +22,13 @@ module Simulation.Simulation where
                                        reduce :: s -> [m] -> SimState a m s
                                      } 
   
-  data SimResult m s = SimResult {states :: [s], log :: [m]}
+  data SimResult m s = SimResult {states :: [s], messages :: [m]}
 
   runSim :: Int -> Simulation a m s -> IO (SimResult m s) 
   runSim iterations sim = makeResult (simStep sim) (initialState sim)
-    where makeResult step init = liftM ((uncurry SimResult) . (take iterations *** take iterations)) . runWriterT . flip evalStateT agentStates . unState $ states
-            where agentStates = M.fromList . map (agentID &&& initialAgentState) . agents $ sim
-                  states      = iterateM step init
+    where makeResult step init  = liftM (uncurry SimResult) . runWriterT . flip evalStateT agentStates . unState $ states
+            where agentStates           = M.fromList . map (agentID &&& initialAgentState) . agents $ sim
+                  states                = iterateM iterations step init
  
   simStep :: Simulation a m s -> s -> SimState a m s
   simStep sim state = do
@@ -40,8 +40,9 @@ module Simulation.Simulation where
   distM_ :: (Monad m) => [a -> m b] -> a -> m ()
   distM_ fs x = sequence_ . map ($x) $ fs
 
-  iterateM :: Monad m => (a -> m a) -> a -> m [a]
-  iterateM f a = (a:) `liftM` (f a >>= iterateM f)
+  iterateM :: Monad m => Int -> (a -> m a) -> a -> m [a]
+  iterateM (-1)  _ _ = return []
+  iterateM  n    f a = (a:) `liftM` (f a >>= iterateM (n-1) f)
 
   defaultMain :: SimResult m s -> IO ()
   defaultMain x = return ()   

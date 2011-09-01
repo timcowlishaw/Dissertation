@@ -1,2 +1,12 @@
 #!/bin/bash
-latex -shell-escape report &&  bibtex report && latex -shell-esape report && latex -shell-escape report  &&  dvips report && ps2pdf report.ps && gnome-open report.pdf
+latex -shell-escape report
+bibtex report
+latex -shell-escape report
+latex -shell-escape report
+dvips report
+ps2pdf report.ps
+echo -e "\nPossibly Misspelled words: "
+cat report.tex | ispell -l -t -d british -p stopwords
+echo -e "\nWord counts:"
+texcount report.tex
+gnome-open report.pdf

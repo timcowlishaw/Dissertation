@@ -1,7 +1,7 @@
 {-# LANGUAGE GADTs #-}
-module Simulation.LimitOrderBook(LOB(), empty, bestBid, numOrders, bestOffer, buySideLiquidity, sellSideLiquidity, buySideDepthNearTop, sellSideDepthNearTop, buySideDepth, sellSideDepth,buySideLevels, sellSideLevels, midPrice, lastTradedPrice, placeOrder) where
+module Simulation.LimitOrderBook(LOB(), empty, withTrades, bestBid, numOrders, bestOffer, buySideLiquidity, sellSideLiquidity, buySideDepthNearTop, sellSideDepthNearTop, buySideDepth, sellSideDepth,buySideLevels, sellSideLevels, midPrice, lastTradedPrice, placeOrder, isCrossed) where
   import Simulation.Types
-  import Simulation.Order
+  import Simulation.Order hiding (bids, offers)
   import Simulation.OrderResponse
   import Simulation.Trade
   --import Simulation.Traders
@@ -10,6 +10,8 @@ module Simulation.LimitOrderBook(LOB(), empty, bestBid, numOrders, bestOffer, bu
   import Data.Map (Map)
   import qualified Data.Map as M
   import Control.Applicative hiding (empty)
+  import Safe
+  import Data.Maybe (fromMaybe)
 
   data LOB = LOB {
     bids :: LimitOrderList Buy,
@@ -20,6 +22,13 @@ module Simulation.LimitOrderBook(LOB(), empty, bestBid, numOrders, bestOffer, bu
   }
  
   empty = LOB LOL.empty LOL.empty [] M.empty (flip $ const . flip const)
+
+  withTrades :: (MarketSide a) => LOB -> [Order a Limit] -> LOB
+  withTrades book orders = foldl place book orders
+    where place :: (MarketSide a) => LOB -> Order a Limit -> LOB
+          place book order = case order of
+            (BidOrder   _ _ _) -> book { bids   = LOL.insert (bids book) order }
+            (OfferOrder _ _ _) -> book { offers = LOL.insert (offers book) order }
 
   bestBid :: LOB -> Price
   bestBid = bestPrice . bids
@@ -64,7 +73,7 @@ module Simulation.LimitOrderBook(LOB(), empty, bestBid, numOrders, bestOffer, bu
   midPrice book = floor $ fromIntegral (bestBid book + bestOffer book) / 2 
  
   lastTradedPrice :: LOB -> Price
-  lastTradedPrice = tradedPrice . head . tradesDone
+  lastTradedPrice = fromMaybe 0 . fmap tradedPrice . headMay . tradesDone
 
   placeOrder :: (MarketSide a, OrderType b) => Time -> LOB -> Order a b -> (LOB, [OrderResponse])
   placeOrder tick book order | tick <= penaltyForTrader  = (book,  [PenaltyResponse trader penaltyForTrader])
