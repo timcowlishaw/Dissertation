@@ -1,5 +1,5 @@
 {-# LANGUAGE FlexibleInstances, FlexibleContexts, UndecidableInstances, ViewPatterns #-}
-module Simulation.LimitOrderList (LimitOrderList(), empty, isEmpty, bestPrice, numOrders, bestOrders, worstPrice, worstOrders, insert, delete, liquidity, depth, depthNearTop,  numLevels, toFill, popBest) where
+module Simulation.LimitOrderList (LimitOrderList(), empty, isEmpty, bestPrice, numOrders, bestOrders, worstPrice, worstOrders, insert, delete, liquidity, depth, depthNearTop,  numLevels, toFill, popBest, orders) where
   import Prelude hiding (last, length, filter, zip, scanl, drop, splitAt, concat, sum, null, foldl)
   import qualified Data.List as L
   import Data.List ((\\))
@@ -10,6 +10,7 @@ module Simulation.LimitOrderList (LimitOrderList(), empty, isEmpty, bestPrice, n
   import qualified Data.Sequence as S (null, empty, length)
   import Data.Foldable
   import Safe
+  import Debug.Trace
 
   data OrderListLevel a = OrderListLevel {levelPrice :: Price, levelOrders :: Seq (Order a Limit)}
 
@@ -48,12 +49,10 @@ module Simulation.LimitOrderList (LimitOrderList(), empty, isEmpty, bestPrice, n
   bestOrders :: MarketSide a => LimitOrderList a -> [Order a Limit]
   bestOrders = fromMaybe [] . fmap (toList . levelOrders) . headMay . levels
   
-  popBest :: (Ord (OrderListLevel a), MarketSide a) => LimitOrderList a -> (Order a Limit, LimitOrderList a)
+  popBest :: (Eq (Order a Limit), Ord (OrderListLevel a), MarketSide a) => LimitOrderList a -> (Order a Limit, LimitOrderList a)
   popBest orderlist       = (order, orderlist')
-    where orderlist'      = LimitOrderList $ L.insert level' (L.delete level $ levels orderlist)
-          level           = head . levels $ orderlist
-          (order:orders)  = ordersForLevel level
-          level'          = level { levelOrders = fromReversedList orders } 
+    where order           = head . bestOrders $ orderlist
+          orderlist'      = delete orderlist order
 
   worstPrice :: MarketSide a => LimitOrderList a -> Price
   worstPrice = levelPrice . L.last . levels

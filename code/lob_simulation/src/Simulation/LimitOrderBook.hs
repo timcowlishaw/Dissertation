@@ -1,5 +1,5 @@
 {-# LANGUAGE GADTs #-}
-module Simulation.LimitOrderBook(LOB(), empty, withTrades, bestBid, numOrders, bestOffer, buySideLiquidity, sellSideLiquidity, buySideDepthNearTop, sellSideDepthNearTop, buySideDepth, sellSideDepth,buySideLevels, sellSideLevels, midPrice, lastTradedPrice, placeOrder, isCrossed) where
+module Simulation.LimitOrderBook(LOB(), limitOrderBook, noPenalty, withBids, withOffers, withPenaltyFunction, bestBid, numOrders, bestOffer, buySideLiquidity, sellSideLiquidity, buySideDepthNearTop, sellSideDepthNearTop, buySideDepth, sellSideDepth,buySideLevels, sellSideLevels, midPrice, lastTradedPrice, placeOrder, isCrossed) where
   import Simulation.Types
   import Simulation.Order hiding (bids, offers)
   import Simulation.OrderResponse
@@ -12,23 +12,32 @@ module Simulation.LimitOrderBook(LOB(), empty, withTrades, bestBid, numOrders, b
   import Control.Applicative hiding (empty)
   import Safe
   import Data.Maybe (fromMaybe)
+  import Debug.Trace
+
+  type PenaltyFunction = LOB -> LOB -> Penalty -> Penalty
 
   data LOB = LOB {
     bids :: LimitOrderList Buy,
     offers :: LimitOrderList Sell,
     tradesDone :: [Trade],
     penalties :: Map TraderID Penalty,
-    penaltyFunction :: LOB -> LOB -> Penalty -> Penalty
+    penaltyFunction :: PenaltyFunction
   }
  
-  empty = LOB LOL.empty LOL.empty [] M.empty (flip $ const . flip const)
+  noPenalty = (flip $ const . flip const)
 
-  withTrades :: (MarketSide a) => LOB -> [Order a Limit] -> LOB
-  withTrades book orders = foldl place book orders
-    where place :: (MarketSide a) => LOB -> Order a Limit -> LOB
-          place book order = case order of
-            (BidOrder   _ _ _) -> book { bids   = LOL.insert (bids book) order }
-            (OfferOrder _ _ _) -> book { offers = LOL.insert (offers book) order }
+  limitOrderBook = LOB LOL.empty LOL.empty [] M.empty noPenalty 
+
+  withBids :: LOB -> [Order Buy Limit] -> LOB
+  withBids book orders = foldl place book orders
+    where place book order = book { bids   = LOL.insert (bids book) order }
+
+  withOffers :: LOB -> [Order Sell Limit] -> LOB
+  withOffers book orders = foldl place book orders
+    where place book order = book { offers = LOL.insert (offers book) order}
+
+  withPenaltyFunction :: LOB -> PenaltyFunction -> LOB
+  withPenaltyFunction book function = book {penaltyFunction = function}
 
   bestBid :: LOB -> Price
   bestBid = bestPrice . bids
@@ -82,7 +91,8 @@ module Simulation.LimitOrderBook(LOB(), empty, withTrades, bestBid, numOrders, b
           penaltyForTrader  = M.findWithDefault 0 trader (penalties book)
           trades''          = trades ++ trades'
           (book'', trades') = uncrossBook $ book' {penalties = penalties'}
-          penalties'        = M.update (return . penaltyFunction book book book') trader (penalties book)
+          penalties'        = M.insert trader newPenalty (penalties book) 
+          newPenalty        = penaltyFunction book book book' penaltyForTrader
           (book', trades)   = bookAndTrades
           bookAndTrades :: (LOB, [Trade])
           bookAndTrades     = case order of
@@ -105,14 +115,14 @@ module Simulation.LimitOrderBook(LOB(), empty, withTrades, bestBid, numOrders, b
           trades             = map (flip makeTrade order) bidOrders ++ tradesDone book
 
   isCrossed :: LOB -> Bool
-  isCrossed book = bestBid book > bestOffer book
+  isCrossed book = (not . elem 0 $ [numBids, numOffers] <*> return book) && bestBid book > bestOffer book
 
   uncrossBook :: LOB -> (LOB, [Trade])
   uncrossBook book = uncrossBook' (book, [])
     where uncrossBook' (b,t) | isCrossed b = uncrossBook' (b', trades' ++ t)
-                             | otherwise    = (b, t)
-            where (bids', bidOrders)  = toFill (bids book) offer
+                             | otherwise   =  (b, t)
+            where (bid, bids')       = popBest (bids book)
                   (offer, offers')    = popBest (offers book)
-                  trades              = map (flip makeTrade offer) bidOrders 
+                  trades              = [makeTrade bid offer] 
                   trades'             = trades ++ tradesDone book
                   b'                  = b { bids = bids', offers = offers', tradesDone = trades'}

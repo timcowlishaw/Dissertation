@@ -26,6 +26,10 @@ module Simulation.Market where
 
   data MarketMessage = Response Time OrderResponse | forall a b . (MarketSide a, OrderType b) => Message Time (Order a b)
 
+  instance Message MarketMessage where
+    messageTime      (Response t _) = t
+    messageTime      (Message  t _) = t
+
   newtype TraderState = TraderState {
     inventoryLevel :: InventoryLevel 
   }
@@ -42,14 +46,14 @@ module Simulation.Market where
   currentValue :: Market -> Price
   currentValue market = getPrice (value market) (time market)
 
-  underlyingValue :: Sentiment -> Price -> Value
-  underlyingValue sentiment initial = Value (function sentiment initial)
+  underlyingValue :: Sentiment -> Price -> Int -> Value
+  underlyingValue sentiment initial ticks = Value (function sentiment initial)
     where function Calm   price tick = price
           function Choppy price tick = max (floor $ (sines !! tick + 1) * fromIntegral price) 0
           function Ramp   price tick = max (floor $ (rampDown !! tick) * fromIntegral price) 0
           function Toxic  price tick = if tick < 40 then price else 5
-          sines     = cycle [sin x | x <- [0.000, 0.001 .. 2*pi]]
-          rampDown  = [1.000, 0.999 ..] 
+          sines     = cycle [sin x | x <- [0.0, (6*pi/fromIntegral ticks) .. 2*pi]]
+          rampDown  = [1.0, 1.0-(1/fromIntegral ticks) ..]
 
   updateMarket :: Market -> [MarketMessage] -> SimState TraderState MarketMessage Market
   updateMarket last messages = do
@@ -62,12 +66,12 @@ module Simulation.Market where
     return $  Market (tick + 1) (value last) book'' (bestBid book') (bestOffer book') (numOrders book')
 
   outlook :: Market -> MarketOutlook
-  outlook market | bb > bo  && bo > cv  = CrossedRising
-                 | bb >= cv && cv >= bo = CrossedStable
-                 | cv > bb  && bb > bo  = CrossedFalling
-                 | bo > bb  && bb > cv  = Falling 
-                 | bo >= cv && cv >= bb = Stable
-                 | cv > bo  && bo > bb  = Rising
+  outlook market | bb >= bo  && bo >= cv  = CrossedRising
+                 | bb >= cv  && cv >= bo = CrossedStable
+                 | cv >= bb  && bb >= bo  = CrossedFalling
+                 | bo >= bb  && bb >= cv  = Falling 
+                 | bo >= cv  && cv >= bb = Stable
+                 | cv >= bo  && bo >= bb  = Rising
                  where bb = bestBid $ book market
                        bo = bestOffer $ book market
                        cv = currentValue market

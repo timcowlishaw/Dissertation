@@ -1,5 +1,5 @@
-{-# LANGUAGE GADTs #-}
-module Simulation.Loggers where
+module Simulation.Loggers(Loggable,  runLoggers, echoStates, echoMessages, logStates, logMessages, none, output) where
+  import Simulation.Utils
   import Simulation.Simulation
   import Simulation.LimitOrderBook
   import Simulation.Trade
@@ -7,56 +7,84 @@ module Simulation.Loggers where
   import Simulation.OrderResponse
   import Simulation.Market
   import Text.CSV
-  import Control.Applicative
   import Control.Monad
- 
+  import Control.Arrow
+  import Data.List
+  import System.Directory
+  import Control.Monad.Error
+   
   class Loggable a where
-    output :: a -> Record
-  
+    output :: a -> [(Field, Field)]
 
-  instance Loggable Market where
-    output = ([show . time,
-            show . outlook,
-            show . currentValue,
-            show . bestBid . book,
-            show . bestOffer . book,
-            show . buySideLiquidity . book,
-            show . sellSideLiquidity . book,
-            show . buySideDepth . book,
-            show . sellSideDepth . book,
-            show . flip buySideDepthNearTop 0.05 . book,
-            show . flip sellSideDepthNearTop 0.05 . book] <*>) . return
-
-  instance Loggable MarketMessage where
-    output m = case m of
-      (Response time (TradeResponse t))              -> [show time, "Trade",   buySideTraderID t, sellSideTraderID t, show $ tradedSize t, show $ tradedPrice t, none]
-      (Response time (PenaltyResponse id p))         -> [show time, "Penalty", id,                none,               none,                none,                 show p]
-      (Message  time (BuyOrder id quantity))         -> [show time, "Buy",     id,                none,               show quantity,       none,                 none]
-      (Message  time (SellOrder id quantity))        -> [show time, "Sell",    id,                none,               show quantity,       none,                 none]
-      (Message  time (BidOrder id price quantity))   -> [show time, "Bid",     id,                none,               show quantity,       show price,           none]
-      (Message  time (OfferOrder id price quantity)) -> [show time, "Offer",   id,                none,               show quantity,       show price,           none]
+  data (Loggable s, Loggable m) => Logger s m = Logger {
+    setup :: s -> [m] -> IO (),
+    run :: s -> [m] -> IO ()
+  } 
 
   none = ""
 
-  echoStates :: SimResult MarketMessage Market -> IO (SimResult MarketMessage Market)
-  echoStates result = do
-    mapM_ (putStrLn . ("State: " ++) . show . output) . states $ result
+  keys :: (Loggable a) => a -> Record
+  keys = map fst . output
+
+  values :: Loggable a => a -> Record
+  values = map snd . output
+
+  runLoggers :: (Loggable s, Loggable m, Message m) => [Logger s m] -> SimResult m s -> IO (SimResult m s)
+  runLoggers loggers result = do
+    let pairs = zip (states result) (groupBy sameTime . messages $ result)
+    distM_ (map (uncurry . setup) loggers) $ head pairs
+    mapM_ (distM_ $ map (uncurry . run) loggers) $ pairs
     return result
 
-  echoMessages :: SimResult MarketMessage Market -> IO (SimResult MarketMessage Market)
-  echoMessages result = do
-    mapM_ (putStrLn . ("Message: " ++) . show . output) . messages $ result
-    return result
-
-  logStates :: FilePath -> SimResult MarketMessage Market -> IO (SimResult MarketMessage Market)
-  logStates filename result = do
-    let csv  = printCSV . map output . states $ result
-    writeFile filename csv
-    return result
+  echoStates :: (Loggable s, Loggable m) => Logger s m
+  echoStates = Logger noSetup runEchoStates
   
-  logMessages :: FilePath -> SimResult MarketMessage Market -> IO (SimResult MarketMessage Market)
-  logMessages filename result = do
-    let csv = printCSV . map output . messages $ result
-    writeFile filename csv
-    return result
+  echoMessages :: (Loggable s, Loggable m) => Logger s m
+  echoMessages = Logger noSetup runEchoMessages
 
+  logStates :: (Loggable s, Loggable m) => FilePath -> Logger s m
+  logStates path = Logger (setupLogStates path) (runLogStates path)
+
+  logMessages :: (Loggable s, Loggable m) => FilePath -> Logger s m
+  logMessages path = Logger (setupLogMessages path) (runLogMessages path)
+  
+
+  runEchoStates :: (Loggable s, Loggable m) =>  s -> [m] -> IO ()
+  runEchoStates state messages = do
+    putStrLn . ("State: " ++) . show . values $ state
+
+  runEchoMessages :: (Loggable s, Loggable m) =>  s -> [m] -> IO ()
+  runEchoMessages state messages = do
+    mapM_ (putStrLn . ("    Message: " ++) . show . values) $ messages
+
+  runLogStates :: (Loggable s, Loggable m) => FilePath -> s -> [m] -> IO ()
+  runLogStates filename state messages = do
+    let csv  = printCSV . return . values $ state
+    appendFile filename $ csv ++ "\n"
+  
+  runLogMessages :: (Loggable s, Loggable m) => FilePath -> s -> [m] -> IO ()
+  runLogMessages filename state messages = do
+    let csv = printCSV . map values $ messages
+    appendFile filename csv
+
+
+  setupLogStates :: (Loggable s, Loggable m) => FilePath -> s -> [m] -> IO ()
+  setupLogStates  filename state messages = do
+    exists <- doesFileExist filename
+    if exists then
+      removeFile filename
+      else return ()
+    appendFile filename $ printCSV (return . keys $ state) ++ "\n"
+    return ()
+  setupLogMessages :: (Loggable s, Loggable m) => FilePath -> s -> [m] -> IO ()
+  setupLogMessages filename state messages = do
+    exists <- doesFileExist filename
+    if exists then
+      removeFile filename
+      else return ()
+    appendFile filename $ printCSV (return . keys . head $ messages) ++ "\n"
+  noSetup :: (Loggable s, Loggable m) => s -> [m] -> IO ()
+  noSetup state messages = return ()
+
+  sameTime :: (Message m1, Message m2) => m1 -> m2 -> Bool
+  sameTime m1 m2 = messageTime m1 == messageTime m2 

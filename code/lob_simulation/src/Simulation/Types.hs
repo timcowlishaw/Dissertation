@@ -5,3 +5,7 @@ module Simulation.Types where
   type TraderID = String
   type Penalty = Int
   type InventoryLevel = Int
+  
+  type VolatilityFunction = Double -> Double
+  type ImbalanceFunction  = Int -> Double
+

@@ -1,2 +1,2 @@
 #!/bin/sh
-cabal-dev configure --enable-executable-profiling --ghc-options="-Wall -fhpc"
+cabal-dev configure --enable-executable-profiling --ghc-options="-Wall -fhpc -auto-all"

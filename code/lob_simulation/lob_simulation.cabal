@@ -62,7 +62,7 @@ Executable lob_simulation
   Main-is:         src/Main.hs            
   HS-Source-Dirs:  .,src 
   -- Packages needed in order to build this package.
-  Build-depends:   base >= 4, mtl, containers, csv, safe 
+  Build-depends:   base >= 4, mtl, containers, csv, safe, directory
   
   -- Modules not exported by this package.
   -- Other-modules:       

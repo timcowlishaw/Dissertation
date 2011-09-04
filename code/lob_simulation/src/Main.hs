@@ -1,22 +1,83 @@
 import Simulation.Simulation
-import Simulation.Market
+import Simulation.Market hiding (book, value)
 import Simulation.Order
 import Simulation.Loggers
+import Simulation.Market.LoggableInstances
 import Simulation.Traders
+import Simulation.Traders.InventoryFunctions
+import Simulation.Traders.SensitivityFunctions
+import Simulation.Traders.Types
 import Simulation.LimitOrderBook
 import Control.Monad
+import Debug.Trace
 
-main :: IO ()
-main = (defaultMain <=< loggers) =<< (runSim 200 $ Simulation traders market updateMarket)
-  where market  = makeMarket value' book'
-        value'   = underlyingValue Calm 2000 
-        book'    = empty `withTrades` initialBids `withTrades` initialOffers
-        traders = makeTraders 3  intermediary ++           --11 -- 3
-                  makeTraders 3  hfTrader ++               --1  -- 3
-                  makeTraders 2  fundamentalBuyer ++       --79 -- 2
-                  makeTraders 2  fundamentalSeller ++      --80 -- 2
-                  makeTraders 4  opportunisticTrader ++    --363 -- 4
-                  makeTraders 4  smallTrader               --430 -- 4
-        initialBids = ["fundamentalBuyer-1" `bids` 1500 `for` 500]
-        initialOffers = ["fundamentalSeller-1" `offers` 2500 `for` 500]
-        loggers = echoStates >=> echoMessages >=> logStates "states.csv" >=> logMessages "messages.csv"
+ticks = 100
+
+value = underlyingValue Choppy 2000 ticks
+
+exponentialBackoffPenalty lobBefore lobAfter penaltyBefore = penaltyBefore + (floor . exp . fromIntegral $ liquidityTaken)
+        where liquidityTaken = buySideLiquidity lobBefore + sellSideLiquidity lobBefore - buySideLiquidity lobAfter - sellSideLiquidity lobAfter
+
+book = limitOrderBook `withBids`            ["fundamentalBuyer-1" `bids` 1500 `for` 500] 
+                      `withOffers`          ["fundamentalSeller-1" `offers` 2500 `for` 500] 
+                      `withPenaltyFunction` noPenalty
+
+intermediary = traderType "intermediary" highImbalanceSensitivity lowVolatilitySensitivity 
+                        `withInitialInventory`  0
+                        `withTargetInventory`   1200
+                        `withTargetOrderSize`   200 
+                        `withDemandBias`        0
+                        `withOrderSizeLimit`    3000
+                        `withInventoryFunction` intermediaryInventory 
+
+hfTrader = traderType "hfTrader" highImbalanceSensitivity lowVolatilitySensitivity 
+                        `withInitialInventory`  0 
+                        `withTargetInventory`   800 
+                        `withTargetOrderSize`   100 
+                        `withDemandBias`        0 
+                        `withOrderSizeLimit`    3000
+                        `withInventoryFunction` hfInventory
+
+fundamentalBuyer = traderType "fundamentalBuyer" lowImbalanceSensitivity highVolatilitySensitivity 
+                        `withInitialInventory`  0
+                        `withTargetInventory`   20000 
+                        `withTargetOrderSize`   200 
+                        `withDemandBias`        200 
+                        `withOrderSizeLimit`    300 
+                        `withInventoryFunction` fundamentalBuyerInventory
+
+fundamentalSeller = traderType "fundamentalSeller" lowImbalanceSensitivity highVolatilitySensitivity 
+                        `withInitialInventory`  0
+                        `withTargetInventory`   100 
+                        `withTargetOrderSize`   100 
+                        `withDemandBias`        (-200) 
+                        `withOrderSizeLimit`    3000 
+                        `withInventoryFunction` fundamentalSellerInventory
+
+
+opportunisticTrader = traderType "opportunisticTrader" mediumImbalanceSensitivity highVolatilitySensitivity 
+                        `withInitialInventory`  0
+                        `withTargetInventory`   800 
+                        `withTargetOrderSize`   100 
+                        `withDemandBias`        0 
+                        `withOrderSizeLimit`    3000 
+                        `withInventoryFunction` opportunisticTraderInventory
+
+smallTrader = traderType "smallTrader" mediumImbalanceSensitivity highVolatilitySensitivity
+                        `withInitialInventory`  0
+                        `withTargetInventory`   400 
+                        `withTargetOrderSize`   100 
+                        `withDemandBias`        0 
+                        `withOrderSizeLimit`    1 
+                        `withInventoryFunction` smallTraderInventory
+
+traders = [(3, intermediary),
+           (3, hfTrader),
+           (2, fundamentalBuyer),
+           (2, fundamentalSeller),
+           (4, opportunisticTrader),
+           (4, smallTrader)]
+
+loggers = [echoMessages, echoStates, logStates "states.csv", logMessages "messages.csv"]
+
+main = runLoggers loggers =<< (runSim ticks $ Simulation (makeTraders traders) (makeMarket value book) updateMarket)
