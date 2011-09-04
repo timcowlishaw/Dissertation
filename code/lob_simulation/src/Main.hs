@@ -11,7 +11,7 @@ import Simulation.LimitOrderBook
 import Control.Monad
 import Debug.Trace
 
-ticks = 100
+ticks = 150
 
 value = underlyingValue Choppy 2000 ticks
 
@@ -20,7 +20,7 @@ exponentialBackoffPenalty lobBefore lobAfter penaltyBefore = penaltyBefore + (fl
 
 book = limitOrderBook `withBids`            ["fundamentalBuyer-1" `bids` 1500 `for` 500] 
                       `withOffers`          ["fundamentalSeller-1" `offers` 2500 `for` 500] 
-                      `withPenaltyFunction` noPenalty
+                      `withPenaltyFunction` exponentialBackoffPenalty
 
 intermediary = traderType "intermediary" highImbalanceSensitivity lowVolatilitySensitivity 
                         `withInitialInventory`  0
@@ -71,12 +71,12 @@ smallTrader = traderType "smallTrader" mediumImbalanceSensitivity highVolatility
                         `withOrderSizeLimit`    1 
                         `withInventoryFunction` smallTraderInventory
 
-traders = [(3, intermediary),
-           (3, hfTrader),
-           (2, fundamentalBuyer),
-           (2, fundamentalSeller),
-           (4, opportunisticTrader),
-           (4, smallTrader)]
+traders = [(11, intermediary),         -- 3 / 11
+           (1, hfTrader),             -- 3 / 1
+           (79, fundamentalBuyer),     -- 2 / 79
+           (80, fundamentalSeller),    -- 2 / 80
+           (363, opportunisticTrader),  -- 4 / 363
+           (430, smallTrader)]          -- 4 / 430
 
 loggers = [echoMessages, echoStates, logStates "states.csv", logMessages "messages.csv"]
 
