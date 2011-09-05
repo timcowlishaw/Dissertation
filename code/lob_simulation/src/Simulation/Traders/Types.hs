@@ -1,12 +1,12 @@
 module Simulation.Traders.Types where
   import Simulation.Types
 
-  data HasInitialInventory = II Size
-  data HasTargetInventory = TI Size
-  data HasTargetOrderSize = TOS Size
-  data HasDemandBias = DB Int
-  data HasOrderSizeLimit = OSL Size
-  data HasInventoryFunction = IF InventoryFunction
+  newtype HasInitialInventory = II Size
+  newtype HasTargetInventory = TI Size
+  newtype HasTargetOrderSize = TOS Size
+  newtype HasDemandBias = DB Int
+  newtype HasOrderSizeLimit = OSL Size
+  newtype HasInventoryFunction = IF InventoryFunction
 
   data NoInitialInventory = NoII
   data NoTargetInventory = NoTI

@@ -20,7 +20,7 @@ module Simulation.Traders (Trader, makeTraders) where
 
   makeAgent :: Int -> Trader -> Agent TraderState MarketMessage Market
   makeAgent n trader = Agent tid function initialState
-    where tid = (show n ++ traderID trader)
+    where tid = (traderID trader ++ "-" ++ show n)
           initialState = TraderState $ initialInventory trader
           function market = do
             (TraderState inventoryLevel) <- (flip (!) $ tid) `fmap` get
@@ -29,7 +29,7 @@ module Simulation.Traders (Trader, makeTraders) where
             let oType           = orderType oSize (orderSizeLimit trader)
             let pricingStrategy = if oSize > (orderSizeLimit trader) then aggressive else neutral
             let oPrice          = pricingStrategy oType trader market
-            placeOrder (time market) oType (abs oSize) oPrice (traderID trader)
+            placeOrder (time market) oType (abs oSize) oPrice tid
     
   placeOrder :: Time -> OrderTypeName -> Size -> Maybe Price -> TraderID -> SimState TraderState MarketMessage ()
   placeOrder time t s p id = tell [makeOrder t s p id]

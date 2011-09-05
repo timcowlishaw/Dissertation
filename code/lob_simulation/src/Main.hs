@@ -11,9 +11,13 @@ import Simulation.LimitOrderBook
 import Control.Monad
 import Debug.Trace
 
-ticks = 150
+ticks = 500
 
 value = underlyingValue Choppy 2000 ticks
+
+resultsDirectory= "../../results/"
+
+testName = "choppy-exponentialBackoffPenalty-lowNTraders-500steps"
 
 exponentialBackoffPenalty lobBefore lobAfter penaltyBefore = penaltyBefore + (floor . exp . fromIntegral $ liquidityTaken)
         where liquidityTaken = buySideLiquidity lobBefore + sellSideLiquidity lobBefore - buySideLiquidity lobAfter - sellSideLiquidity lobAfter
@@ -71,13 +75,13 @@ smallTrader = traderType "smallTrader" mediumImbalanceSensitivity highVolatility
                         `withOrderSizeLimit`    1 
                         `withInventoryFunction` smallTraderInventory
 
-traders = [(11, intermediary),         -- 3 / 11
-           (1, hfTrader),             -- 3 / 1
-           (79, fundamentalBuyer),     -- 2 / 79
-           (80, fundamentalSeller),    -- 2 / 80
-           (363, opportunisticTrader),  -- 4 / 363
-           (430, smallTrader)]          -- 4 / 430
+traders = [(3, intermediary),         -- 3 / 11
+           (3, hfTrader),             -- 3 / 1
+           (2, fundamentalBuyer),     -- 2 / 79
+           (2, fundamentalSeller),    -- 2 / 80
+           (4, opportunisticTrader),  -- 4 / 363
+           (4, smallTrader)]          -- 4 / 430
 
-loggers = [echoMessages, echoStates, logStates "states.csv", logMessages "messages.csv"]
+loggers = [echoMessages, echoStates, logStates (resultsDirectory ++ "states-" ++ testName ++ ".csv"), logMessages (resultsDirectory ++ "messages-" ++ testName ++ ".csv")]
 
 main = runLoggers loggers =<< (runSim ticks $ Simulation (makeTraders traders) (makeMarket value book) updateMarket)
